@@ -1,12 +1,16 @@
+# StdLib modules
 import json  # for json processing
 import httpclient  # HttpClient type
 import strutils  # parsing strings, strings.contains
-import strfmt  # interp
 import tables  # dict-like, for conversion from json
 import times  # to output time
 import os # os operations
 
-import unpack  # unpack macro
+# Nimble modules
+import strfmt  # interp
+
+# Own and 3-rd party one-file modules
+import utils/unpack, utils/lexim/lexim  # unpack macro and case: with regexp macro
 import types
 import vkapi
 
