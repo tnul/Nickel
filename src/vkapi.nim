@@ -19,7 +19,7 @@ proc setToken* (api:var VkApi, token: string) =
     ## Set token to use for API requests 
     api.token = token
 
-proc callMethod* (api: VkApi, methodName: string, params: Table = newTable[string, int](), token: string = ""): JsonNode =
+proc callMethod* (api: VkApi, methodName: string, params: Table = noParams, token: string = ""): JsonNode =
   ## Access {methodName} endpoint of VK API with table {params} and optional {token}
   let token = if len(token) > 0: token else: api.token
   let url = "https://api.vk.com/method/" & interp("$methodName?access_token=$token&v=5.63&")
