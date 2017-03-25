@@ -79,7 +79,7 @@ proc mainLoop(bot: var VkBot)
 
 proc startBot(bot: var VkBot) = 
   ## Get Long Polling server that we need to connect to
-  let data = bot.api.callMethod("messages.getLongPollServer", noParams)
+  let data = bot.api.callMethod("messages.getLongPollServer")
   
   bot.lpData = LongPollData(
     key: data["key"].str, 

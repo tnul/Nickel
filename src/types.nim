@@ -32,6 +32,7 @@ type
     lpData*: LongPollData
     lpURL*: string
     running*: bool
+  KeyVal* = openarray[tuple[key: string, val: string]]
 
 
 

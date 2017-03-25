@@ -3,35 +3,35 @@ import tables  # for dict-like tables
 import json  # for parsing json response
 import strfmt  # for interp 
 import cgi  # for url encoding 
-
+import uri
 import types
 
-const 
-  noParams* = {"a": "b"}.toTable
+proc getQuery(client: HttpClient, url: string, params: KeyVal): Response =
+  ## Get {url} with query parameters {params} as KeyVal
+  var newUrl = parseUri(url)
+  if newUrl.query == "":
+    newUrl.query = "?"
+  for pair in params:
+    let enck = cgi.encodeUrl(pair.key)
+    let encv = cgi.encodeUrl(pair.val)
+    newUrl.query.add($enck & "=" & $encv & "&") 
+  return client.get($newUrl)
 
-let emptyJson* = %* {}
 
-proc newAPI* (token: string): VkApi =
+proc newAPI* (token: string = ""): VkApi =
   ## Creates new API object and returns it
-  return VKAPI(token: token, http: newHttpClient())
+  return VkApi(token: token, http: newHttpClient())
 
 proc setToken* (api:var VkApi, token: string) =
-    ## Set token to use for API requests 
-    api.token = token
+  ## Set token for use in API requests 
+  api.token = token
 
-proc callMethod* (api: VkApi, methodName: string, params: Table = noParams, token: string = ""): JsonNode =
-  ## Access {methodName} endpoint of VK API with table {params} and optional {token}
+proc callMethod* (api: VkApi, methodName: string, params: KeyVal = [], token: string = ""): JsonNode =
+  ## Access {methodName} endpoint of VK API with JsonNode {params} and optional {token}
   let token = if len(token) > 0: token else: api.token
   let url = "https://api.vk.com/method/" & interp("$methodName?access_token=$token&v=5.63&")
-  # Query string will be something like a=b&c=d&e=f&
-  var query = ""
-  if params != noParams:
-    for k, v in pairs(params):
-      let enck = cgi.encodeUrl(k)
-      let encv = cgi.encodeUrl(v)
-      query.add(interp"$enck=$encv" & "&") 
-        
-  let data = parseJson(api.http.get(url & query).body)
+          
+  let data = parseJson(api.http.getQuery(url, params).body)
   # If there's response section - we need return items from inside of it
   if "response" in data:
     return data["response"]
@@ -47,5 +47,6 @@ proc callMethod* (api: VkApi, methodName: string, params: Table = noParams, toke
 proc answer* (api: VkApi, msg: Message, body: string) =
     ## As messages.send is the most used method in the bot, we can make
     ## this simple and short procedure to make our lifes easier :)
-    var data = {"message": body, "peer_id": $msg.peerId}.toTable()
+    let data = {"message": body, "peer_id": $msg.peerId}
     discard api.callMethod("messages.send", data)
+  
