@@ -7,5 +7,5 @@ const greetings = ["Запущен и готов служить!",
                    "Писать ботов не так-то просто, как кажется!",
                    "Привет, странствующий путник!"]
 
-proc call* (api: VkApi, msg: Message) =
+proc call*(api: VkApi, msg: Message) =
   api.answer(msg,  random(greetings))

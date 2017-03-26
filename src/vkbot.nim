@@ -40,7 +40,7 @@ proc processMessage(bot:VkBot, msg: Message): bool =
     else:
       discard
 
-proc processLpMessage(bot:VkBot, event: seq[JsonNode]) =
+proc processLpMessage(bot: VkBot, event: seq[JsonNode]) =
   ## Process raw message event from Long Polling
   # Extract values from new message event
   event.extract(msgId, flags, peerId, ts, subject, text, attaches)
@@ -73,7 +73,6 @@ proc newBot(token: string): VkBot =
     lpURL: "", 
     running: false
   )
-
 
 proc mainLoop(bot: var VkBot)
 

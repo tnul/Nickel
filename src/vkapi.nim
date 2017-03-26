@@ -6,7 +6,7 @@ import cgi  # for url encoding
 import uri
 import types
 
-proc getQuery(client: HttpClient, url: string, params: KeyVal): Response =
+proc getQuery*(client: HttpClient, url: string, params: KeyVal): Response =
   ## Get {url} with query parameters {params} as KeyVal
   var newUrl = parseUri(url)
   if newUrl.query == "":
@@ -18,15 +18,15 @@ proc getQuery(client: HttpClient, url: string, params: KeyVal): Response =
   return client.get($newUrl)
 
 
-proc newAPI* (token: string = ""): VkApi =
+proc newAPI*(token: string = ""): VkApi =
   ## Creates new API object and returns it
   return VkApi(token: token, http: newHttpClient())
 
-proc setToken* (api:var VkApi, token: string) =
+proc setToken*(api:var VkApi, token: string) =
   ## Set token for use in API requests 
   api.token = token
 
-proc callMethod* (api: VkApi, methodName: string, params: KeyVal = [], token: string = ""): JsonNode =
+proc callMethod*(api: VkApi, methodName: string, params: KeyVal = [], token: string = ""): JsonNode =
   ## Access {methodName} endpoint of VK API with JsonNode {params} and optional {token}
   let token = if len(token) > 0: token else: api.token
   let url = "https://api.vk.com/method/" & interp("$methodName?access_token=$token&v=5.63&")
@@ -41,12 +41,11 @@ proc callMethod* (api: VkApi, methodName: string, params: KeyVal = [], token: st
       echo("Error calling " & methodName)
       echo $data
       # Return empty JSON Node
-      return  %* {}
+      return  %*{}
     return data
 
-proc answer* (api: VkApi, msg: Message, body: string) =
+proc answer*(api: VkApi, msg: Message, body: string) =
     ## As messages.send is the most used method in the bot, we can make
     ## this simple and short procedure to make our lifes easier :)
     let data = {"message": body, "peer_id": $msg.peerId}
     discard api.callMethod("messages.send", data)
-  
