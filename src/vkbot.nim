@@ -9,13 +9,15 @@ import os # os operations
 # Nimble modules
 import strfmt  # interp
 
-# Own and 3-rd party one-file modules
-import utils/unpack, utils/lexim/lexim  # unpack macro and case: with regexp macro
+# Own and 3-rd party modules (those are not available in Nimble)
+import utils/[unpack, lexim/lexim]  # unpack macro and case: with regexp macro
 import types
 import vkapi
 
 
-import plugins/ [example, greeting, curtime]
+import plugins/[example, greeting, curtime]
+
+
 
 proc getLongPollUrl(data: LongPollData): string =
   ## Get URL for Long Polling server based on LongPollData info
@@ -95,22 +97,21 @@ proc mainLoop(bot: var VkBot) =
   while bot.running:
     # Parse response body to JSON
     let resp = parseJson(bot.api.http.get(bot.lpUrl).body)
-    # Update our timestamp with new one
-    bot.lpData.ts = int(resp["ts"].getNum())
-    let updates = resp["updates"]
-    for event in updates:
+    let events = resp["updates"]
+
+    for event in events:
       let elems = event.getElems()
-      let eventType = elems[0]
-      let eventData = elems[1..elems.high()]
-      case event[0].getNum():
+      let (eventType, eventData) = (elems[0].getNum(), elems[1..^1])
+
+      case eventType:
         # Event type 4 - we've got new message
         of 4:
           bot.processLpMessage(eventData)
         else:
           discard
     # We need to update our url with new timestamp, so let's do it
+    bot.lpData.ts = int(resp["ts"].getNum())
     bot.lpUrl = getLongPollUrl(bot.lpData)
-
 
 proc gracefulShutdown() {.noconv.} =
     ## Gracefully disable bot
