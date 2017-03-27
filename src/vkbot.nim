@@ -1,36 +1,37 @@
-# StdLib modules
-import json  # for json processing
-import httpclient  # HttpClient type
-import strutils  # parsing strings, strings.contains
-import tables  # dict-like, for conversion from json
-import times  # to output time
-import os # os operations
+{.experimental.}
+# Модули стандартной библиотеки
+import json  # Обработка JSON
+import httpclient  # HTTP запросы
+import strutils  # Парсинг строк в числа
+import tables  # Для некоторых методов JSON
+import os # Операции ОС (открытие файла)
 
-# Nimble modules
-import strfmt  # interp
+# Модули из Nimble
+import strfmt  # используется функция interp
 
-# Own and 3-rd party modules (those are not available in Nimble)
-import utils/[unpack, lexim/lexim]  # unpack macro and case: with regexp macro
-import types
-import vkapi
+# Свои модули, и модули, которых нет в Nimble
+import utils/[unpack, lexim/lexim]  # макрос unpack
+import types  # Общие типы бота
+import vkapi  # Реализация вк апи
 
-
+# Импорт плагинов
 import plugins/[example, greeting, curtime]
 
 
 
-proc getLongPollUrl(data: LongPollData): string =
-  ## Get URL for Long Polling server based on LongPollData info
+proc getLongPollUrl(bot: var VkBot) =
+  ## Получает URL для Long Polling на основе данных LongPolling бота
+  let data = bot.lpData
   let url = interp"https://${data.server}?act=a_check&key=${data.key}&ts=${data.ts}&wait=25&mode=2&version=1"
-  return url
+  bot.lpUrl = url
 
 proc processCommand(body: string): Command =
-  ## Process string {body} and return Command object
+  ## Обрабатывает строку {body} и возвращает тип Command
   let values = body.split()
   return Command(command: values[0], arguments: values[1..values.high()])
   
 proc processMessage(bot:VkBot, msg: Message): bool =
-  ## Process message: mark it as read if needed, pass it to plugins etc...
+  ## Обработать сообщение: пометить его прочитанным, если нужно, передать плагинам...
   let cmdObj = msg.cmd
   case cmdObj.command:
     of "привет":
@@ -43,20 +44,20 @@ proc processMessage(bot:VkBot, msg: Message): bool =
       discard
 
 proc processLpMessage(bot: VkBot, event: seq[JsonNode]) =
-  ## Process raw message event from Long Polling
-  # Extract values from new message event
+  ## Обрабатывает сырое событие нового сообщения
+  # Распаковать значения из события
   event.extract(msgId, flags, peerId, ts, subject, text, attaches)
 
-  # Cast integer number to set of enum values
+  # Конвертировать число в set значений Flags
   let msgFlags: set[Flags] = cast[set[Flags]](int(flags.getNum()))
 
-  # If we've sent this message - we don't need to process it
+  # Если мы отправили это сообщение - его обрабатывать не нужно
   if Flags.Outbox in msgFlags:
     return
   
-  # Create Command instance
+  # Обработать строку и создать объект команды
   let cmd = processCommand(text.str.replace("<br>", "\n"))
-  # Create a MessageUpdate instance 
+  # Создаёт объект Message
   let message = Message(
     msgId: int(msgId.getNum()),
     peerId: int(peerId.getNum()),
@@ -66,66 +67,94 @@ proc processLpMessage(bot: VkBot, event: seq[JsonNode]) =
   )
   discard bot.processMessage(message)
 
-proc newBot(token: string): VkBot =
+proc initBot(token: string): VkBot =
+  ## Возвращает новый объект VkBot на основе токена
   let api = newAPI(token)
-  var lpData = LongPollData(key: "", server: "", ts: 1)
-  return VkBot(
-    api: api, 
-    lpData: lpData, 
-    lpURL: "", 
-    running: false
-  )
+  var lpData = LongPollData()
+  return VkBot(api: api, lpData: lpData)
 
+
+proc initLongPolling(bot: var VkBot, failData: JsonNode = %* {}) =
+  ## Инициализирует данные для Long Polling сервера (или обрабатывает ошибку) 
+  const retries = 5
+  var data: JsonNode
+  # Пытаемся получить значения Long Polling'а 5 раз
+  for retry in 0..retries:
+    data = bot.api.callMethod("messages.getLongPollServer", {"use_ssl":"1"})
+    if likely(data.getFields.len > 0):
+      break
+  
+  bot.lpData = LongPollData()
+  if failData.getElems.len == 0:
+    # Нам нужно инициализировать все параметры - первый запуск
+    bot.lpData.server = data["server"].str    
+    bot.lpData.key = data["key"].str
+    bot.lpData.ts = int(data["ts"].getNum())
+    bot.getLongPollUrl()
+    return
+  case int(failData.getNum()):
+    of 1:
+      ## Обновить метку времени
+      bot.lpData.ts = int(failData["ts"].getNum())
+    of 2:
+      ## Обновить ключ
+      bot.lpData.key = data["key"].str
+    of 3:
+      ## Обновить ключ и метку времени
+      bot.lpData.key = data["key"].str
+      bot.lpData.ts = int(data["ts"].getNum())
+    else:
+      discard
+
+  # Обновить URL Long Polling'а
+  bot.getLongPollUrl()
+
+# Объявляем mainLoop здесь, чтобы startBot его увидел  
 proc mainLoop(bot: var VkBot)
 
 proc startBot(bot: var VkBot) = 
-  ## Get Long Polling server that we need to connect to
-  let data = bot.api.callMethod("messages.getLongPollServer")
-  
-  bot.lpData = LongPollData(
-    key: data["key"].str, 
-    server: data["server"].str, 
-    ts: int(data["ts"].getNum())
-  )
-  ## Set appropriate URL for Long Polling
-  bot.lpUrl = getLongPollUrl(bot.lpData)
+  ## Инициализирует Long Polling и Запускает главный цикл бота
+  bot.initLongPolling()
   bot.running = true
   bot.mainLoop()
 
 proc mainLoop(bot: var VkBot) =
-  ## Main bot loop (events are listened here)
+  ## Главный цикл бота (тут идёт обработка новых событий)
   while bot.running:
-    # Parse response body to JSON
+    # Парсим ответ сервера в JSON
     let resp = parseJson(bot.api.http.get(bot.lpUrl).body)
     let events = resp["updates"]
-
+    let failed = resp.getOrDefault("failed")
+    # Если у нас есть поле failed - значит произошла какая-то ошибка
+    if failed != nil:
+      bot.initLongPolling(failed)
     for event in events:
       let elems = event.getElems()
       let (eventType, eventData) = (elems[0].getNum(), elems[1..^1])
 
       case eventType:
-        # Event type 4 - we've got new message
+        # Код события 4 - у нас новое сообщение
         of 4:
           bot.processLpMessage(eventData)
         else:
           discard
-    # We need to update our url with new timestamp, so let's do it
+    # Нам нужно обновить наш URL с новой меткой времени
     bot.lpData.ts = int(resp["ts"].getNum())
-    bot.lpUrl = getLongPollUrl(bot.lpData)
+    bot.getLongPollUrl()
 
 proc gracefulShutdown() {.noconv.} =
-    ## Gracefully disable bot
-    echo("Shutting down the bot...")
+    ## Выключение бота с ожиданием (срабатывает на Ctrl+C)
+    echo("Выключение бота...")
     sleep(500)
     quit(0)
 
 when isMainModule:
-  echo("Reading access_token from .TOKEN file...")
-  let token = readLine(open(".TOKEN", fmRead))
-  var bot = newBot(token)
+  echo("Чтение access_token из файла token")
+  let token = readLine(open("token", fmRead))
+  var bot = initBot(token)
   # Set our hook to Control+C - will be useful in future
   # (close database, end queries etc...)
   setControlCHook(gracefulShutdown)
-  echo("Starting the main bot loop...")
+  echo("Запуск главного цикла бота...")
   bot.startBot()
   

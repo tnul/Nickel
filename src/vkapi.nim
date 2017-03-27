@@ -1,10 +1,10 @@
-import httpclient  # for http requests
-import tables  # for dict-like tables 
-import json  # for parsing json response
-import strfmt  # for interp 
-import cgi  # for url encoding 
-import uri
-import types
+import httpclient  # Для HTTP запросов
+import tables  # Для таблиц
+import json  # Для парсинга JSON
+import strfmt  # Для использования interp
+import cgi  # Для url кодирования
+import uri  # Для парсинга URL
+import types  # Общие типы бота
 
 proc getQuery*(client: HttpClient, url: string, params: KeyVal): Response =
   ## Get {url} with query parameters {params} as KeyVal
