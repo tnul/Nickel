@@ -6,11 +6,14 @@ randomize()
 proc call*(api: VkApi, msg: Message) {.async.} =
   let args: seq[string] = msg.cmd.arguments
   var intArgs: seq[int] = @[]
+  var failMsg = ""
   try:
     # Пытаемся конвертировать аргументы в числа
     intArgs = args.mapIt(parseInt(it))
   except:
-    await api.answer(msg, "Один из аргументов - не число")
+    failMsg = "Один из аргументов - не число"
+  if len(failMsg) > 0:
+    await api.answer(msg, "Плохо")
     return
   # Два аргумента - начало и конец диапазона  
   var rndNumber = 0

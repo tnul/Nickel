@@ -7,10 +7,15 @@ const
                  "Шуточки заказывали?", "Петросян в душе прям бушует :)"]
   
   JokesUrl = "http://bash.im/random"
-let client = newHttpClient()
 
-proc getJoke(): string =
-  let resp = client.getContent(JokesUrl)
+
+proc getJoke() : Future[string] {.async.} =
+  let client = newAsyncHttpClient()
+  var resp: string
+  try:
+    resp = await client.getContent(JokesUrl)
+  except:
+    return ""
   let jokeRaw = resp.convert("UTF-8", "CP1251")
   let stream = newStringStream(jokeRaw)
   let jokeHtml = parseHtml(stream)
@@ -34,4 +39,8 @@ proc getJoke(): string =
   return jokeText
 
 proc call*(api: VkApi, msg: Message) {.async.}=
-  await api.answer(msg, random(Answers) & "\n" & getJoke())
+  let joke: string = await getJoke()
+  if likely(len(joke) > 1):
+    await api.answer(msg, random(Answers) & "\n" & joke)
+  else:
+    await api.answer(msg, "Извини, но у меня шутилка сломалась :(")

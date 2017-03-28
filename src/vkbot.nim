@@ -10,14 +10,12 @@ import asyncdispatch
 import strfmt  # используется функция interp
 
 # Свои модули, и модули, которых нет в Nimble
-import utils/[unpack, lexim/lexim]  # макрос unpack
+import utils/unpack  # макрос unpack
 import types  # Общие типы бота
 import vkapi  # Реализация вк апи
 
 # Импорт плагинов
-import plugins/[example, greeting, curtime, joke, sayrandom]
-
-
+import plugins/[example, greeting, curtime, joke, sayrandom, shutdown]
 
 proc getLongPollUrl(bot: VkBot) =
   ## Получает URL для Long Polling на основе данных LongPolling бота
@@ -36,15 +34,17 @@ proc processMessage(bot:VkBot, msg: Message) {.async.} =
   # Смотрим на команду
   case cmdObj.command:
     of "привет":
-      greeting.call(bot.api, msg)
+      await greeting.call(bot.api, msg)
     of "время":
-      curtime.call(bot.api, msg)
+      await curtime.call(bot.api, msg)
     of "тест":
-      example.call(bot.api, msg)
+      await example.call(bot.api, msg)
     of "пошути":
-      joke.call(bot.api, msg)
+      await joke.call(bot.api, msg)
     of "рандом":
-      sayrandom.call(bot.api, msg)
+      await sayrandom.call(bot.api, msg)
+    of "выключись":
+      await shutdown.call(bot.api, msg)
     else:
       discard
 
@@ -86,7 +86,7 @@ proc initLongPolling(bot: VkBot, failData: JsonNode = %* {}) {.async.} =
   var data: JsonNode
   # Пытаемся получить значения Long Polling'а (5 попыток)
   for retry in 0..retries:
-    data = bot.api.callMethod("messages.getLongPollServer", {"use_ssl":"1"})
+    data = await bot.api.callMethod("messages.getLongPollServer", @[("use_ssl","1")])
     if likely(data.getFields.len > 0):
       break
   
@@ -117,21 +117,23 @@ proc initLongPolling(bot: VkBot, failData: JsonNode = %* {}) {.async.} =
   bot.getLongPollUrl()
 
 # Объявляем mainLoop здесь, чтобы startBot его увидел  
-proc mainLoop(bot: var VkBot)
+proc mainLoop(bot: VkBot) {.async.} 
 
 proc startBot(bot: VkBot) {.async.} = 
   ## Инициализирует Long Polling и Запускает главный цикл бота
   await bot.initLongPolling()
   bot.running = true
-  bot.mainLoop()
+  await bot.mainLoop()
 
-proc mainLoop(bot: VkBot) {.async.}=
+proc mainLoop(bot: VkBot) {.async.} =
   ## Главный цикл бота (тут идёт обработка новых событий)
   while bot.running:
     # Парсим ответ сервера в JSON
-    let resp = parseJson(await bot.api.http.get(bot.lpUrl).body)
-    let events = resp["updates"]
-    let failed = resp.getOrDefault("failed")
+    let resp = await bot.api.http.get(bot.lpUrl)
+    let data = await resp.body
+    let jsonData = parseJson(data)
+    let events = jsonData["updates"]
+    let failed = jsonData.getOrDefault("failed")
     # Если у нас есть поле failed - значит произошла какая-то ошибка
     if failed != nil:
       await bot.initLongPolling(failed)
@@ -146,7 +148,7 @@ proc mainLoop(bot: VkBot) {.async.}=
         else:
           discard
     # Нам нужно обновить наш URL с новой меткой времени
-    bot.lpData.ts = int(resp["ts"].getNum())
+    bot.lpData.ts = int(jsonData["ts"].getNum())
     bot.getLongPollUrl()
 
 proc gracefulShutdown() {.noconv.} =
@@ -164,3 +166,4 @@ when isMainModule:
   setControlCHook(gracefulShutdown)
   echo("Запуск главного цикла бота...")
   asyncCheck bot.startBot()
+  runForever()

@@ -10,19 +10,19 @@ import random  # для анти флуда
 import strutils
 import asyncdispatch
 
-proc getQuery*(client: AsyncHttpClient, url: string, params: KeyVal | Table): 
-                                          Future[AsyncResponse] {.async.} =
+proc getQuery*(client: AsyncHttpClient, url: string, params: KeyVal | Table):
+                                    Future[AsyncResponse] {.async.} =
   ## Делает GET запрос на {url} с query параметрами {params}
   var newUrl = parseUri(url)
   # Если query пустой - добавляем начало - ?
   if newUrl.query == "":
     newUrl.query = "?"
-  # Энкодим ключ и значение, и добавляем к query
+  # Кодируем ключ и значение для URL, и добавляем к query
   for key, val in pairs(params):
     let enck = cgi.encodeUrl(key)
     let encv = cgi.encodeUrl(val)
-    newUrl.query.add($enck & "=" & $encv & "&") 
-  # Отправляем запрос и возвращаем ответ
+    newUrl.query.add($enck & "=" & $encv & "&")
+  # Отправляем запрос и возвращаем его ответ
   return await client.get($newUrl)
 
 
@@ -35,34 +35,34 @@ proc setToken*(api: VkApi, token: string) =
   api.token = token
 
 proc antiFlood(): string =
+   ## Служит ля обхода анти-флуда Вконтакте (генерирует пять случайных букв)
    const Alphabet = "ABCDEFGHIJKLMNOPQRSTUWXYZ"
    return lc[random(Alphabet) | (x <- 0..5), char].join("")
 
 
-proc callMethod*(api: VkApi, methodName: string, params: KeyVal = @[], 
+proc callMethod*(api: VkApi, methodName: string, params: KeyVal = @[],
         token: string = "", flood: bool = false): Future[JsonNode] {.async.} =
-  ## Отправляет запрос к методу {methodName} с параметрами  {params} типа JsonNode 
+  ## Отправляет запрос к методу {methodName} с параметрами  {params} типа JsonNode
   ## и допольнительным {token}
   # Если нам дали кастомный токен в процедуру, юзаем его, иначе - тот,
   # с которым инициализировались
   let token = if len(token) > 0: token else: api.token
-  
+
   # Создаём URL
   let url = "https://api.vk.com/method/" & interp("$methodName?access_token=$token&v=5.63&")
   var newParams = params.toTable()
   if flood:
     newParams["message"] = antiFlood() & "\n" & newParams["message"]
-  
   # Парсим ответ от VK API в JSON
   let resp = await api.http.getQuery(url, newParams)
   let body = await resp.body
   let data = parseJson(body)
-  #  Если есть секция response - нам нужно вернуть элементы из неё
+  #  Если есть секция response - нам нужно вернуть её элементы
   if "response" in data:
     return data["response"]
-  # Иначе - проверить на ошибки, и вернуть сам JSON если всё хорошо
+  # Иначе - проверить на ошибки, и просто вернуть ответ, если всё хорошо
   else:
-    if "error" in data:
+    if likely("error" in data):
       case int(data["error"]["error_code"].getNum()):
         # флуд контроль
         of 9:
@@ -76,6 +76,6 @@ proc callMethod*(api: VkApi, methodName: string, params: KeyVal = @[],
       return data
 
 proc answer*(api: VkApi, msg: Message, body: string) {.async.} =
-    ## Упрощённый метод для ответа на сообщение
-    let data = @[("message", body), ("peer_id", $msg.peerId)]
-    discard await api.callMethod("messages.send", data)
+  ## Упрощённый метод для ответа на сообщение {msg}
+  let data = @[("message", body), ("peer_id", $msg.peerId)]
+  discard await api.callMethod("messages.send", data)
