@@ -15,7 +15,7 @@ import types  # Общие типы бота
 import vkapi  # Реализация вк апи
 
 # Импорт плагинов
-import plugins/[example, greeting, curtime]
+import plugins/[example, greeting, curtime, joke, sayrandom]
 
 
 
@@ -30,9 +30,10 @@ proc processCommand(body: string): Command =
   let values = body.split()
   return Command(command: values[0], arguments: values[1..values.high()])
   
-proc processMessage(bot:VkBot, msg: Message): bool =
+proc processMessage(bot:VkBot, msg: Message) =
   ## Обработать сообщение: пометить его прочитанным, если нужно, передать плагинам...
   let cmdObj = msg.cmd
+  # Смотрим на команду
   case cmdObj.command:
     of "привет":
       greeting.call(bot.api, msg)
@@ -40,22 +41,26 @@ proc processMessage(bot:VkBot, msg: Message): bool =
       curtime.call(bot.api, msg)
     of "тест":
       example.call(bot.api, msg)
+    of "пошути":
+      joke.call(bot.api, msg)
+    of "рандом":
+      sayrandom.call(bot.api, msg)
     else:
       discard
 
 proc processLpMessage(bot: VkBot, event: seq[JsonNode]) =
   ## Обрабатывает сырое событие нового сообщения
-  # Распаковать значения из события
+  # Распаковываем значения из события
   event.extract(msgId, flags, peerId, ts, subject, text, attaches)
 
-  # Конвертировать число в set значений Flags
+  # Конвертируем число в set значений enum'а Flags
   let msgFlags: set[Flags] = cast[set[Flags]](int(flags.getNum()))
 
   # Если мы отправили это сообщение - его обрабатывать не нужно
   if Flags.Outbox in msgFlags:
     return
   
-  # Обработать строку и создать объект команды
+  # Обрабатываем строку и создаём объект команды
   let cmd = processCommand(text.str.replace("<br>", "\n"))
   # Создаёт объект Message
   let message = Message(
@@ -65,11 +70,11 @@ proc processLpMessage(bot: VkBot, event: seq[JsonNode]) =
     cmd: cmd,
     attachments: attaches
   )
-  discard bot.processMessage(message)
+  bot.processMessage(message)
 
 proc initBot(token: string): VkBot =
   ## Возвращает новый объект VkBot на основе токена
-  let api = newAPI(token)
+  let api = initApi(token)
   var lpData = LongPollData()
   return VkBot(api: api, lpData: lpData)
 
@@ -78,7 +83,7 @@ proc initLongPolling(bot: var VkBot, failData: JsonNode = %* {}) =
   ## Инициализирует данные для Long Polling сервера (или обрабатывает ошибку) 
   const retries = 5
   var data: JsonNode
-  # Пытаемся получить значения Long Polling'а 5 раз
+  # Пытаемся получить значения Long Polling'а (5 попыток)
   for retry in 0..retries:
     data = bot.api.callMethod("messages.getLongPollServer", {"use_ssl":"1"})
     if likely(data.getFields.len > 0):
@@ -92,6 +97,7 @@ proc initLongPolling(bot: var VkBot, failData: JsonNode = %* {}) =
     bot.lpData.ts = int(data["ts"].getNum())
     bot.getLongPollUrl()
     return
+  # Смотрим на код ошибки
   case int(failData.getNum()):
     of 1:
       ## Обновить метку времени
