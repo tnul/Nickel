@@ -4,15 +4,16 @@ import json  # Обработка JSON
 import httpclient  # HTTP запросы
 import strutils  # Парсинг строк в числа
 import tables  # Для некоторых методов JSON
-import os # Операции ОС (открытие файла)
-import asyncdispatch
+import os  # Операции ОС (открытие файла)
+import asyncdispatch  # Асинхронщина
+
 # Модули из Nimble
 import strfmt  # используется функция interp
 
 # Свои модули, и модули, которых нет в Nimble
-import utils/unpack  # макрос unpack
+import utils/unpack  # Макрос unpack (взят со stackoverflow)
 import types  # Общие типы бота
-import vkapi  # Реализация вк апи
+import vkapi  # Реализация VK API
 
 # Импорт плагинов
 import plugins/[example, greeting, curtime, joke, sayrandom, shutdown, currency]
@@ -29,7 +30,8 @@ proc processCommand(body: string): Command =
   return Command(command: values[0], arguments: values[1..values.high()])
   
 proc processMessage(bot:VkBot, msg: Message) {.async.} =
-  ## Обработать сообщение: пометить его прочитанным, если нужно, передать плагинам...
+  ## Обрабатывает сообщение: обозначает его прочитанным, 
+  ## передаёт события плагинам...
   let cmdObj = msg.cmd
   # Смотрим на команду
   case cmdObj.command:
@@ -64,7 +66,7 @@ proc processLpMessage(bot: VkBot, event: seq[JsonNode]) {.async.} =
   
   # Обрабатываем строку и создаём объект команды
   let cmd = processCommand(text.str.replace("<br>", "\n"))
-  # Создаёт объект Message
+  # Создаём объект Message
   let message = Message(
     msgId: int(msgId.getNum()),
     peerId: int(peerId.getNum()),
@@ -168,4 +170,4 @@ when isMainModule:
   setControlCHook(gracefulShutdown)
   echo("Запуск главного цикла бота...")
   asyncCheck bot.startBot()
-  runForever()
+  asyncdispatch.runForever()

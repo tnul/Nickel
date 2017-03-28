@@ -5,7 +5,7 @@ type
   LongPollData* = object
     key*: string
     server*: string
-    ts*: int
+    ts*: int64
 
   Flags* {.pure.} = enum 
     Unread, Outbox, Replied, 
@@ -27,6 +27,7 @@ type
   VkApi* = ref object
     token*: string
     http*: AsyncHttpClient
+    reqCount*: byte
 
   
   VkBot* = ref object

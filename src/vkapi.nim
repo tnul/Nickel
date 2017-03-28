@@ -10,6 +10,11 @@ import random  # для анти флуда
 import strutils
 import asyncdispatch
 
+
+const 
+  MaxRPS: byte = 3
+  SleepTime = 350
+
 proc getQuery*(client: AsyncHttpClient, url: string, params: KeyVal | Table):
                                     Future[AsyncResponse] {.async.} =
   ## Делает GET запрос на {url} с query параметрами {params}
@@ -40,6 +45,14 @@ proc antiFlood(): string =
    return lc[random(Alphabet) | (x <- 0..5), char].join("")
 
 
+proc apiLimiter(api: VkApi) {.async.} =
+  ## Увеличиваеи кол-во запущенных запросов, ждёт SleepTime мс, и уменьшает
+  ## кол-во запущенных запросов
+  ## Сделано для ограничения 3 запросов в секунду(350*3 = 1150 - на всякий случай)
+  inc(api.reqCount)
+  await sleepAsync(SleepTime)
+  dec(api.reqCount)
+  
 proc callMethod*(api: VkApi, methodName: string, params: KeyVal = @[],
         token: string = "", flood: bool = false): Future[JsonNode] {.async.} =
   ## Отправляет запрос к методу {methodName} с параметрами  {params} типа JsonNode
@@ -47,14 +60,15 @@ proc callMethod*(api: VkApi, methodName: string, params: KeyVal = @[],
   # Если нам дали кастомный токен в процедуру, юзаем его, иначе - тот,
   # с которым инициализировались
   let token = if len(token) > 0: token else: api.token
-
   # Создаём URL
   let url = "https://api.vk.com/method/" & interp("$methodName?access_token=$token&v=5.63&")
   var newParams = params.toTable()
   if flood:
     newParams["message"] = antiFlood() & "\n" & newParams["message"]
   # Парсим ответ от VK API в JSON
+  await api.apiLimiter()
   let resp = await api.http.getQuery(url, newParams)
+
   let body = await resp.body
   let data = parseJson(body)
   #  Если есть секция response - нам нужно вернуть её элементы
@@ -66,6 +80,7 @@ proc callMethod*(api: VkApi, methodName: string, params: KeyVal = @[],
       case int(data["error"]["error_code"].getNum()):
         # флуд контроль
         of 9:
+          await api.apiLimiter()
           return await callMethod(api, methodName, params, token, flood = true)
         else:
           echo("Ошибка при вызове " & methodName)
