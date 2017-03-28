@@ -8,9 +8,10 @@ import uri  # Для парсинга URL
 import types  # Общие типы бота
 import random  # для анти флуда
 import strutils
+import asyncdispatch
 
-
-proc getQuery*(client: HttpClient, url: string, params: KeyVal | Table): Response =
+proc getQuery*(client: AsyncHttpClient, url: string, params: KeyVal | Table): 
+                                          Future[AsyncResponse] {.async.} =
   ## Делает GET запрос на {url} с query параметрами {params}
   var newUrl = parseUri(url)
   # Если query пустой - добавляем начало - ?
@@ -22,14 +23,14 @@ proc getQuery*(client: HttpClient, url: string, params: KeyVal | Table): Respons
     let encv = cgi.encodeUrl(val)
     newUrl.query.add($enck & "=" & $encv & "&") 
   # Отправляем запрос и возвращаем ответ
-  return client.get($newUrl)
+  return await client.get($newUrl)
 
 
-proc initApi*(token: string = ""): VkApi =
+proc newApi*(token: string = ""): VkApi =
   ## Создаёт новый объект VkAPi и возвращает его
-  return VkApi(token: token, http: newHttpClient())
+  return VkApi(token: token, http: newAsyncHttpClient())
 
-proc setToken*(api:var VkApi, token: string) =
+proc setToken*(api: VkApi, token: string) =
   ## Устанавливает токен для использования в API запросах
   api.token = token
 
@@ -38,8 +39,8 @@ proc antiFlood(): string =
    return lc[random(Alphabet) | (x <- 0..5), char].join("")
 
 
-proc callMethod*(api: VkApi, methodName: string, params: KeyVal = [], 
-                    token: string = "", flood: bool = false): JsonNode =
+proc callMethod*(api: VkApi, methodName: string, params: KeyVal = @[], 
+        token: string = "", flood: bool = false): Future[JsonNode] {.async.} =
   ## Отправляет запрос к методу {methodName} с параметрами  {params} типа JsonNode 
   ## и допольнительным {token}
   # Если нам дали кастомный токен в процедуру, юзаем его, иначе - тот,
@@ -53,7 +54,9 @@ proc callMethod*(api: VkApi, methodName: string, params: KeyVal = [],
     newParams["message"] = antiFlood() & "\n" & newParams["message"]
   
   # Парсим ответ от VK API в JSON
-  let data = parseJson(api.http.getQuery(url, newParams).body)
+  let resp = await api.http.getQuery(url, newParams)
+  let body = await resp.body
+  let data = parseJson(body)
   #  Если есть секция response - нам нужно вернуть элементы из неё
   if "response" in data:
     return data["response"]
@@ -63,7 +66,7 @@ proc callMethod*(api: VkApi, methodName: string, params: KeyVal = [],
       case int(data["error"]["error_code"].getNum()):
         # флуд контроль
         of 9:
-          return callMethod(api, methodName, params, token, flood = true)
+          return await callMethod(api, methodName, params, token, flood = true)
         else:
           echo("Ошибка при вызове " & methodName)
           echo $data
@@ -72,7 +75,7 @@ proc callMethod*(api: VkApi, methodName: string, params: KeyVal = [],
     else:
       return data
 
-proc answer*(api: VkApi, msg: Message, body: string) =
+proc answer*(api: VkApi, msg: Message, body: string) {.async.} =
     ## Упрощённый метод для ответа на сообщение
-    let data = {"message": body, "peer_id": $msg.peerId}
-    discard api.callMethod("messages.send", data)
+    let data = @[("message", body), ("peer_id", $msg.peerId)]
+    discard await api.callMethod("messages.send", data)

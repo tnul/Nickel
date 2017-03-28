@@ -5,7 +5,7 @@ import httpclient  # HTTP запросы
 import strutils  # Парсинг строк в числа
 import tables  # Для некоторых методов JSON
 import os # Операции ОС (открытие файла)
-
+import asyncdispatch
 # Модули из Nimble
 import strfmt  # используется функция interp
 
@@ -19,7 +19,7 @@ import plugins/[example, greeting, curtime, joke, sayrandom]
 
 
 
-proc getLongPollUrl(bot: var VkBot) =
+proc getLongPollUrl(bot: VkBot) =
   ## Получает URL для Long Polling на основе данных LongPolling бота
   let data = bot.lpData
   let url = interp"https://${data.server}?act=a_check&key=${data.key}&ts=${data.ts}&wait=25&mode=2&version=1"
@@ -30,7 +30,7 @@ proc processCommand(body: string): Command =
   let values = body.split()
   return Command(command: values[0], arguments: values[1..values.high()])
   
-proc processMessage(bot:VkBot, msg: Message) =
+proc processMessage(bot:VkBot, msg: Message) {.async.} =
   ## Обработать сообщение: пометить его прочитанным, если нужно, передать плагинам...
   let cmdObj = msg.cmd
   # Смотрим на команду
@@ -48,7 +48,7 @@ proc processMessage(bot:VkBot, msg: Message) =
     else:
       discard
 
-proc processLpMessage(bot: VkBot, event: seq[JsonNode]) =
+proc processLpMessage(bot: VkBot, event: seq[JsonNode]) {.async.} =
   ## Обрабатывает сырое событие нового сообщения
   # Распаковываем значения из события
   event.extract(msgId, flags, peerId, ts, subject, text, attaches)
@@ -67,19 +67,20 @@ proc processLpMessage(bot: VkBot, event: seq[JsonNode]) =
     msgId: int(msgId.getNum()),
     peerId: int(peerId.getNum()),
     timestamp: int(ts.getNum()),
+    subject: subject.str,
     cmd: cmd,
     attachments: attaches
   )
-  bot.processMessage(message)
+  await bot.processMessage(message)
 
-proc initBot(token: string): VkBot =
+proc newBot(token: string): VkBot =
   ## Возвращает новый объект VkBot на основе токена
-  let api = initApi(token)
+  let api = newApi(token)
   var lpData = LongPollData()
   return VkBot(api: api, lpData: lpData)
 
 
-proc initLongPolling(bot: var VkBot, failData: JsonNode = %* {}) =
+proc initLongPolling(bot: VkBot, failData: JsonNode = %* {}) {.async.} =
   ## Инициализирует данные для Long Polling сервера (или обрабатывает ошибку) 
   const retries = 5
   var data: JsonNode
@@ -118,22 +119,22 @@ proc initLongPolling(bot: var VkBot, failData: JsonNode = %* {}) =
 # Объявляем mainLoop здесь, чтобы startBot его увидел  
 proc mainLoop(bot: var VkBot)
 
-proc startBot(bot: var VkBot) = 
+proc startBot(bot: VkBot) {.async.} = 
   ## Инициализирует Long Polling и Запускает главный цикл бота
-  bot.initLongPolling()
+  await bot.initLongPolling()
   bot.running = true
   bot.mainLoop()
 
-proc mainLoop(bot: var VkBot) =
+proc mainLoop(bot: VkBot) {.async.}=
   ## Главный цикл бота (тут идёт обработка новых событий)
   while bot.running:
     # Парсим ответ сервера в JSON
-    let resp = parseJson(bot.api.http.get(bot.lpUrl).body)
+    let resp = parseJson(await bot.api.http.get(bot.lpUrl).body)
     let events = resp["updates"]
     let failed = resp.getOrDefault("failed")
     # Если у нас есть поле failed - значит произошла какая-то ошибка
     if failed != nil:
-      bot.initLongPolling(failed)
+      await bot.initLongPolling(failed)
     for event in events:
       let elems = event.getElems()
       let (eventType, eventData) = (elems[0].getNum(), elems[1..^1])
@@ -141,7 +142,7 @@ proc mainLoop(bot: var VkBot) =
       case eventType:
         # Код события 4 - у нас новое сообщение
         of 4:
-          bot.processLpMessage(eventData)
+          await bot.processLpMessage(eventData)
         else:
           discard
     # Нам нужно обновить наш URL с новой меткой времени
@@ -157,10 +158,9 @@ proc gracefulShutdown() {.noconv.} =
 when isMainModule:
   echo("Чтение access_token из файла token")
   let token = readLine(open("token", fmRead))
-  var bot = initBot(token)
+  var bot = newBot(token)
   # Set our hook to Control+C - will be useful in future
   # (close database, end queries etc...)
   setControlCHook(gracefulShutdown)
   echo("Запуск главного цикла бота...")
-  bot.startBot()
-  
+  asyncCheck bot.startBot()

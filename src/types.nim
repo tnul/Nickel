@@ -1,4 +1,4 @@
-import json, httpclient
+import json, httpclient, queues
 
 # We export all types and fileds from there to other modules
 type
@@ -20,19 +20,22 @@ type
     msgId*: int
     peerId*: int
     timestamp*: int
+    subject*: string
     cmd*: Command
     attachments*: JsonNode
   
-  VkApi* = object
+  VkApi* = ref object
     token*: string
-    http*: HttpClient
-    
-  VkBot* = object
+    http*: AsyncHttpClient
+
+  
+  VkBot* = ref object
     api*: VkApi
     lpData*: LongPollData
     lpURL*: string
     running*: bool
-  KeyVal* = openarray[tuple[key: string, val: string]]
+
+  KeyVal* = seq[tuple[key: string, val: string]]
 
 
 

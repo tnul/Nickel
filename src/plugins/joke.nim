@@ -7,10 +7,13 @@ const
                  "Шуточки заказывали?", "Петросян в душе прям бушует :)"]
   
   JokesUrl = "http://bash.im/random"
+let client = newHttpClient()
 
-proc call*(api: VkApi, msg: Message) =
-  let jokeRaw = api.http.getContent(JokesUrl).convert("UTF-8", "CP1251")
-  let jokeHtml = parseHtml(newStringStream(jokeRaw))
+proc getJoke(): string =
+  let resp = client.getContent(JokesUrl)
+  let jokeRaw = resp.convert("UTF-8", "CP1251")
+  let stream = newStringStream(jokeRaw)
+  let jokeHtml = parseHtml(stream)
   var jokeText = ""
   for elem in jokeHtml.findAll("div"):
     if elem.attr("class") != "text":
@@ -28,4 +31,7 @@ proc call*(api: VkApi, msg: Message) =
     # Если у нас есть шутка, не будем искать другие
     if len(jokeText) > 0:
       break
-  api.answer(msg, random(Answers) & "\n" & jokeText)
+  return jokeText
+
+proc call*(api: VkApi, msg: Message) {.async.}=
+  await api.answer(msg, random(Answers) & "\n" & getJoke())

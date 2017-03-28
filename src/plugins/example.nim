@@ -1,5 +1,5 @@
 include base
 
-proc call*(api: VKAPI, msg: Message) =
+proc call*(api: VkApi, msg: Message) {.async.} =
   let argsStr = msg.cmd.arguments.join(", ")
-  api.answer(msg, "Это тестовая команда. Аргументы - " & argsStr)
+  await api.answer(msg, "Это тестовая команда. Аргументы - " & argsStr)

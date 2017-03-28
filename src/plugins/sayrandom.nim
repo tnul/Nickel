@@ -1,16 +1,16 @@
 include base
-import random, sequtils, math
+import random, sequtils
 randomize()
 
 
-proc call*(api: VkApi, msg: Message) =
+proc call*(api: VkApi, msg: Message) {.async.} =
   let args: seq[string] = msg.cmd.arguments
   var intArgs: seq[int] = @[]
   try:
     # Пытаемся конвертировать аргументы в числа
     intArgs = args.mapIt(parseInt(it))
   except:
-    api.answer(msg, "Один из аргументов - не число")
+    await api.answer(msg, "Один из аргументов - не число")
     return
   # Два аргумента - начало и конец диапазона  
   var rndNumber = 0
@@ -27,7 +27,7 @@ proc call*(api: VkApi, msg: Message) =
   # Число от 1 до 6, как у кубика
   else:
     rndNumber = random(5) + 1
-  api.answer(msg, "Моё число - " & $rndNumber)
+  await api.answer(msg, "Моё число - " & $rndNumber)
     
       
 
