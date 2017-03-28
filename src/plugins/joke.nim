@@ -8,9 +8,8 @@ const
   
   JokesUrl = "http://bash.im/random"
 
-
+let client = newAsyncHttpClient()
 proc getJoke() : Future[string] {.async.} =
-  let client = newAsyncHttpClient()
   var resp: string
   try:
     resp = await client.getContent(JokesUrl)

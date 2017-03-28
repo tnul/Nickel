@@ -15,7 +15,7 @@ import types  # Общие типы бота
 import vkapi  # Реализация вк апи
 
 # Импорт плагинов
-import plugins/[example, greeting, curtime, joke, sayrandom, shutdown]
+import plugins/[example, greeting, curtime, joke, sayrandom, shutdown, currency]
 
 proc getLongPollUrl(bot: VkBot) =
   ## Получает URL для Long Polling на основе данных LongPolling бота
@@ -45,6 +45,8 @@ proc processMessage(bot:VkBot, msg: Message) {.async.} =
       await sayrandom.call(bot.api, msg)
     of "выключись":
       await shutdown.call(bot.api, msg)
+    of "курс":
+      await currency.call(bot.api, msg)
     else:
       discard
 
