@@ -1,5 +1,6 @@
-Nickel (Никель)
+Nickel (Никель) [![Присоединись к чату на https://gitter.im/NickelVK/Lobby](https://badges.gitter.im/NickelVK/Lobby.svg)](https://gitter.im/NickelVK/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 ======
+
 Чат-бот для ВКонтакте в ранней стадии разработки, написанный на языке Nim.
 Пока не подходит для повседневного использования, однако, если вы хотите использовать его в будущем - помогите в поиске багов и крашей!
 Я учу язык вместе с разработкой этого бота, так что давайте советы (если вы, конечно, знаете Nim) :)
