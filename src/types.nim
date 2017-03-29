@@ -1,13 +1,15 @@
 import json, httpclient, queues
 
-# Все эти типы и поля доступны в других методах (знак *)
+# Все эти типы и поля доступны в других методах.
+# Экспортируемые типы и поля указываются знаком *
+
 type
   LongPollData* = object
     key*: string  # Ключ сервера 
     server*: string  # URL сервера
     ts*: int64  # Последняя метка времени
 
-  Flags* {.pure.} = enum  # Флаги сообщения в лонг пуллинге
+  Flags* {.pure.} = enum  # Флаги события нового сообщения Long Polling
     Unread, Outbox, Replied, 
     Important, Chat, Friends, 
     Spam, Deleted, Fixed, Media
@@ -35,8 +37,6 @@ type
     lpData*: LongPollData  # Информация о сервере Long Pooling
     lpURL*: string  # URL сервера Long Pooling
     running*: bool  # Работает ли бот
-
-  KeyVal* = seq[tuple[key: string, val: string]]
 
 
 

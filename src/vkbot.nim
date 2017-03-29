@@ -17,7 +17,7 @@ import vkapi  # Реализация VK API
 
 # Импорт плагинов
 import plugins/[example, greeting, curtime, joke, 
-                sayrandom, shutdown, currency, dvach]
+                sayrandom, shutdown, currency, dvach, notepad, soothsayer]
 
 proc getLongPollUrl(bot: VkBot) =
   ## Получает URL для Long Polling на основе данных LongPolling бота
@@ -54,6 +54,10 @@ proc processMessage(bot:VkBot, msg: Message) {.async.} =
       await dvach.call(bot.api, msg, true)
     of "мемы":
       await dvach.call(bot.api, msg)
+    of "блокнот":
+      await notepad.call(bot.api, msg)
+    of "шар":
+      await soothsayer.call(bot.api, msg)
     else:
       discard
 
@@ -87,7 +91,6 @@ proc newBot(token: string): VkBot =
   let api = newApi(token)
   var lpData = LongPollData()
   return VkBot(api: api, lpData: lpData)
-
 
 proc initLongPolling(bot: VkBot, failData: JsonNode = %* {}) {.async.} =
   ## Инициализирует данные для Long Polling сервера (или обрабатывает ошибку) 
@@ -127,8 +130,6 @@ proc initLongPolling(bot: VkBot, failData: JsonNode = %* {}) {.async.} =
   # Обновить URL Long Polling'а
   bot.getLongPollUrl()
 
-
-
 proc mainLoop(bot: VkBot) {.async.} =
   ## Главный цикл бота (тут идёт обработка новых событий)
   while bot.running:
@@ -138,7 +139,7 @@ proc mainLoop(bot: VkBot) {.async.} =
     let jsonData = parseJson(data)
     let events = jsonData["updates"]
     let failed = jsonData.getOrDefault("failed")
-
+    
     # Если у нас есть поле failed - значит произошла какая-то ошибка
     if unlikely(failed != nil):
       await bot.initLongPolling(failed)
