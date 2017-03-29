@@ -1,6 +1,5 @@
 include base
-import random, httpclient, encodings, streams, htmlparser, xmltree
-randomize()
+import httpclient, encodings, streams, htmlparser, xmltree
 
 const 
   Answers = ["А вот и шуточки подъехали", "Сейчас будет смешно, зуб даю",
@@ -8,17 +7,18 @@ const
   
   JokesUrl = "http://bash.im/random"
 
-let client = newAsyncHttpClient()
-proc getJoke() : Future[string] {.async.} =
-  var resp: string
-  try:
+
+
+proc getJoke(): Future[string] {.async.} =
+  let client = newAsyncHttpClient()
+  var 
     resp = await client.getContent(JokesUrl)
-  except:
-    return ""
-  let jokeRaw = resp.convert("UTF-8", "CP1251")
-  let stream = newStringStream(jokeRaw)
-  let jokeHtml = parseHtml(stream)
-  var jokeText = ""
+
+  let 
+    jokeRaw = resp.convert("UTF-8", "CP1251")
+    jokeHtml = parseHtml(newStringStream(jokeRaw))
+  
+  result = ""
   for elem in jokeHtml.findAll("div"):
     if elem.attr("class") != "text":
       # Нам нужны div'ы с классом "text"
@@ -27,15 +27,14 @@ proc getJoke() : Future[string] {.async.} =
     for child in items(elem):
       case child.kind:
         of XmlNodeKind.xnText:
-          jokeText.add(child.innerText)
+          result.add(child.innerText)
         of XmlNodeKind.xnElement:
-          jokeText.add("\n")
+          result.add("\n")
         else:
           discard
     # Если у нас есть шутка, не будем искать другие
-    if len(jokeText) > 0:
+    if likely(len(result) > 0):
       break
-  return jokeText
 
 proc call*(api: VkApi, msg: Message) {.async.}=
   let joke: string = await getJoke()

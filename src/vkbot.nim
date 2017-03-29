@@ -3,7 +3,7 @@
 import json  # Обработка JSON
 import httpclient  # HTTP запросы
 import strutils  # Парсинг строк в числа
-import tables  # Для некоторых методов JSON
+import strtabs  # Для некоторых методов JSON
 import os  # Операции ОС (открытие файла)
 import asyncdispatch  # Асинхронщина
 
@@ -11,12 +11,13 @@ import asyncdispatch  # Асинхронщина
 import strfmt  # используется функция interp
 
 # Свои модули, и модули, которых нет в Nimble
-import utils/unpack  # Макрос unpack (взят со stackoverflow)
+import utils  # Макрос unpack (взят со stackoverflow)
 import types  # Общие типы бота
 import vkapi  # Реализация VK API
 
 # Импорт плагинов
-import plugins/[example, greeting, curtime, joke, sayrandom, shutdown, currency]
+import plugins/[example, greeting, curtime, joke, 
+                sayrandom, shutdown, currency, dvach]
 
 proc getLongPollUrl(bot: VkBot) =
   ## Получает URL для Long Polling на основе данных LongPolling бота
@@ -49,6 +50,10 @@ proc processMessage(bot:VkBot, msg: Message) {.async.} =
       await shutdown.call(bot.api, msg)
     of "курс":
       await currency.call(bot.api, msg)
+    of "двач":
+      await dvach.call(bot.api, msg, true)
+    of "мемы":
+      await dvach.call(bot.api, msg)
     else:
       discard
 
@@ -86,13 +91,15 @@ proc newBot(token: string): VkBot =
 
 proc initLongPolling(bot: VkBot, failData: JsonNode = %* {}) {.async.} =
   ## Инициализирует данные для Long Polling сервера (или обрабатывает ошибку) 
-  const retries = 5
+  const MaxRetries = 5
   var data: JsonNode
   # Пытаемся получить значения Long Polling'а (5 попыток)
-  for retry in 0..retries:
-    data = await bot.api.callMethod("messages.getLongPollServer", @[("use_ssl","1")])
-    if likely(data.getFields.len > 0):
-      break
+  for retry in 0..MaxRetries:
+    let params = {"use_ssl":"1"}.api
+    data = await bot.api.callMethod("messages.getLongPollServer", params)
+    break
+    #if likely(data.getFields.len > 0):
+    #  break
   
   bot.lpData = LongPollData()
   if failData.getElems.len == 0:
@@ -120,14 +127,7 @@ proc initLongPolling(bot: VkBot, failData: JsonNode = %* {}) {.async.} =
   # Обновить URL Long Polling'а
   bot.getLongPollUrl()
 
-# Объявляем mainLoop здесь, чтобы startBot его увидел  
-proc mainLoop(bot: VkBot) {.async.} 
 
-proc startBot(bot: VkBot) {.async.} = 
-  ## Инициализирует Long Polling и Запускает главный цикл бота
-  await bot.initLongPolling()
-  bot.running = true
-  await bot.mainLoop()
 
 proc mainLoop(bot: VkBot) {.async.} =
   ## Главный цикл бота (тут идёт обработка новых событий)
@@ -138,9 +138,11 @@ proc mainLoop(bot: VkBot) {.async.} =
     let jsonData = parseJson(data)
     let events = jsonData["updates"]
     let failed = jsonData.getOrDefault("failed")
+
     # Если у нас есть поле failed - значит произошла какая-то ошибка
-    if failed != nil:
+    if unlikely(failed != nil):
       await bot.initLongPolling(failed)
+      
     for event in events:
       let elems = event.getElems()
       let (eventType, eventData) = (elems[0].getNum(), elems[1..^1])
@@ -155,11 +157,17 @@ proc mainLoop(bot: VkBot) {.async.} =
     bot.lpData.ts = int(jsonData["ts"].getNum())
     bot.getLongPollUrl()
 
+proc startBot(bot: VkBot) {.async.} = 
+  ## Инициализирует Long Polling и Запускает главный цикл бота
+  await bot.initLongPolling()
+  bot.running = true
+  await bot.mainLoop()
+
 proc gracefulShutdown() {.noconv.} =
-    ## Выключение бота с ожиданием (срабатывает на Ctrl+C)
-    echo("Выключение бота...")
-    sleep(500)
-    quit(0)
+  ## Выключение бота с ожиданием (срабатывает на Ctrl+C)
+  echo("Выключение бота...")
+  sleep(500)
+  quit(0)
 
 when isMainModule:
   echo("Чтение access_token из файла token")

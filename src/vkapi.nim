@@ -1,6 +1,6 @@
 import future
 import httpclient  # Для HTTP запросов
-import tables  # Для таблиц
+import strtabs  # Для быстрых словарей
 import json  # Для парсинга JSON
 import strfmt  # Для использования interp
 import cgi  # Для url кодирования
@@ -9,18 +9,18 @@ import types  # Общие типы бота
 import random  # для анти флуда
 import strutils
 import asyncdispatch
-
+import utils
 
 const 
   MaxRPS: byte = 3
   SleepTime = 350
 
-proc getQuery*(client: AsyncHttpClient, url: string, params: KeyVal | Table):
+proc getQuery*(client: AsyncHttpClient, url: string, params: StringTableRef):
                                     Future[AsyncResponse] {.async.} =
   ## Делает GET запрос на {url} с query параметрами {params}
   var newUrl = parseUri(url)
   # Если query пустой - добавляем начало - ?
-  if newUrl.query == "":
+  if likely(newUrl.query == ""):
     newUrl.query = "?"
   # Кодируем ключ и значение для URL, и добавляем к query
   for key, val in pairs(params):
@@ -53,44 +53,48 @@ proc apiLimiter(api: VkApi) {.async.} =
   await sleepAsync(SleepTime)
   dec(api.reqCount)
   
-proc callMethod*(api: VkApi, methodName: string, params: KeyVal = @[],
-        token: string = "", flood: bool = false): Future[JsonNode] {.async.} =
+proc callMethod*(api: VkApi, methodName: string, params: StringTableRef = newStringTable(),
+        needAuth: bool = true, flood: bool = false): Future[JsonNode] {.async.} =
   ## Отправляет запрос к методу {methodName} с параметрами  {params} типа JsonNode
   ## и допольнительным {token}
-  # Если нам дали кастомный токен в процедуру, юзаем его, иначе - тот,
-  # с которым инициализировались
-  let token = if len(token) > 0: token else: api.token
-  # Создаём URL
-  let url = "https://api.vk.com/method/" & interp("$methodName?access_token=$token&v=5.63&")
-  var newParams = params.toTable()
+  let 
+    # Если нужна авторизация апи - используем токен апи, иначе - пустой токен
+    token = if likely(needAuth): api.token else: ""
+    # Создаём URL
+    url = "https://api.vk.com/method/" & interp("$methodName?access_token=$token&v=5.63&")
+  
+  # Если была ошибка о флуде, добавляем анти-флуд
   if flood:
-    newParams["message"] = antiFlood() & "\n" & newParams["message"]
-  # Парсим ответ от VK API в JSON
-  await api.apiLimiter()
-  let resp = await api.http.getQuery(url, newParams)
-
-  let body = await resp.body
-  let data = parseJson(body)
-  #  Если есть секция response - нам нужно вернуть её элементы
-  if "response" in data:
+    params["message"] = antiFlood() & "\n" & params["message"]
+  
+  # await api.apiLimiter()
+  let 
+    resp = await api.http.getQuery(url, params)
+    # Парсим ответ от VK API в JSON
+    data = parseJson(await resp.body)
+  #  Если есть секция response - нам нужно вернуть ответ из неё
+  if likely("response" in data):
     return data["response"]
   # Иначе - проверить на ошибки, и просто вернуть ответ, если всё хорошо
   else:
     if likely("error" in data):
       case int(data["error"]["error_code"].getNum()):
-        # флуд контроль
+        # Flood error - слишком много одинаковых сообщений
         of 9:
-          await api.apiLimiter()
-          return await callMethod(api, methodName, params, token, flood = true)
+          # await api.apiLimiter()
+          return await callMethod(api, methodName, params, needAuth, flood = true)
         else:
-          echo("Ошибка при вызове " & methodName)
-          echo $data
+          echo("Ошибка при вызове " & methodName & "\n" & $data)
           # Возвращаем пустой JSON объект
           return  %*{}
     else:
       return data
 
-proc answer*(api: VkApi, msg: Message, body: string) {.async.} =
-  ## Упрощённый метод для ответа на сообщение {msg}
-  let data = @[("message", body), ("peer_id", $msg.peerId)]
+proc answer*(api: VkApi, msg: Message, body: string, 
+                        attaches: string = "") {.async.} =
+  ## Упрощённая процедура для ответа на сообщение {msg}
+  let data = {"message": body, "peer_id": $msg.peerId}.api
+  # Если есть какие-то приложения, добавляем их в значения для API
+  if len(attaches) > 0:
+    data["attachment"] = attaches
   discard await api.callMethod("messages.send", data)

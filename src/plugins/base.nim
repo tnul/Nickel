@@ -1,7 +1,13 @@
-# It's easier to include this file in every plugin
+# Очень рекомендуется include'ить этот файл во все плагины
 {.experimental.}
 import ../types
 import ../vkapi
-import json  # For dealing with JSON (for example, creating custom API requests)
-import strutils  # For various things on strings
-import asyncdispatch
+import ../utils
+import json  # Для парсинга JSON
+import strutils  # Строковые операции
+import asyncdispatch  # Асинхронность
+import strtabs  # Для работы с StringTable
+import random  # Для функций рандома
+import strfmt  # Для строкой интерполяции - interp
+# Рандомизируем вывод рандома (иначе он будет всегда одинаков в каждом запуске)
+randomize()  
