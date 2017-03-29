@@ -14,10 +14,24 @@ import strfmt  # используется функция interp
 import utils  # Макрос unpack (взят со stackoverflow)
 import types  # Общие типы бота
 import vkapi  # Реализация VK API
-
+import parsecfg # Парсинг файла конфигурации
 # Импорт плагинов
 import plugins/[example, greeting, curtime, joke, 
                 sayrandom, shutdown, currency, dvach, notepad, soothsayer]
+
+
+const Commands = ["привет", "тест", "время", "пошути", "рандом", "выключись",
+                  "курс","мемы", "двач", "блокнот", "шар"]
+
+
+proc parseConfig(path: string): BotConfig = 
+  let data = loadConfig(path)
+  return BotConfig(
+    token: data.getSectionValue("Авторизация", "токен"),
+    logMessages: data.getSectionValue("Бот", "сообщения").parseBool(),
+    logCommands: data.getSectionValue("Бот", "команды").parseBool(),
+    reportErrors: data.getSectionValue("Бот", "ошибки").parseBool()
+  )
 
 proc getLongPollUrl(bot: VkBot) =
   ## Получает URL для Long Polling на основе данных LongPolling бота
@@ -72,25 +86,31 @@ proc processLpMessage(bot: VkBot, event: seq[JsonNode]) {.async.} =
   # Если мы отправили это сообщение - его обрабатывать не нужно
   if Flags.Outbox in msgFlags:
     return
-  
+  let msgPeerId = int(peerId.getNum())
+  let msgBody = text.str.replace("<br>", "\n")
   # Обрабатываем строку и создаём объект команды
-  let cmd = processCommand(text.str.replace("<br>", "\n"))
+  let cmd = processCommand(msgBody)
   # Создаём объект Message
   let message = Message(
     msgId: int(msgId.getNum()),
-    peerId: int(peerId.getNum()),
+    peerId: msgPeerId,
     timestamp: int(ts.getNum()),
     subject: subject.str,
     cmd: cmd,
+    body: text.str, 
     attachments: attaches
   )
+  if bot.config.logCommands and cmd.command in Commands:
+    message.log(command = true)
+  elif bot.config.logMessages:
+    message.log(command = false)
   await bot.processMessage(message)
 
-proc newBot(token: string): VkBot =
+proc newBot(config: BotConfig): VkBot =
   ## Возвращает новый объект VkBot на основе токена
-  let api = newApi(token)
+  let api = newApi(config.token)
   var lpData = LongPollData()
-  return VkBot(api: api, lpData: lpData)
+  return VkBot(api: api, lpData: lpData, config: config)
 
 proc initLongPolling(bot: VkBot, failData: JsonNode = %* {}) {.async.} =
   ## Инициализирует данные для Long Polling сервера (или обрабатывает ошибку) 
@@ -171,9 +191,12 @@ proc gracefulShutdown() {.noconv.} =
   quit(0)
 
 when isMainModule:
-  echo("Чтение access_token из файла token")
-  let token = readLine(open("token", fmRead))
-  var bot = newBot(token)
+  echo("Загрузка настроек из settings.ini...")
+  let config = parseConfig("settings.ini")
+  echo("Логгирование команд: " & $config.logCommands)
+  echo("Логгирование сообщений: " & $config.logMessages)
+  echo("Отправка ошибок пользователям: " & $config.reportErrors)
+  var bot = newBot(config)
   # Set our hook to Control+C - will be useful in future
   # (close database, end queries etc...)
   setControlCHook(gracefulShutdown)

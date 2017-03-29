@@ -1,5 +1,13 @@
-import macros, strtabs, cgi
-import times, strutils, types
+# Файл с различными хелперами
+
+# Стандартная библиотека
+import macros, strtabs, times, strutils
+# Nimble
+import strfmt
+# Сторонние пакеты
+import termcolor
+# Свои пакеты
+import types
 
 # http://stackoverflow.com/questions/31948131/unpack-multiple-variables-from-sequence
 macro extract*(args: varargs[untyped]): typed =
@@ -44,3 +52,24 @@ proc getMoscowTime*(): string =
   ## Возвращает время в формате день.месяц.год часы:минуты:секунды по МСК
   let curTime = getGmTime(getTime()) + initInterval(hours=3)
   return format(curTime, "d'.'M'.'yyyy HH':'mm':'ss")
+
+
+proc coloredLog(style: ref AnsiStyle, data: string) =
+  ## Выводит сообщение data со стилем style в консоль с указанием времени 
+  stdout.write("\e[0;34m")  # Синий цвет
+  stdout.write(getClockStr() & " ")  # Пишем время 
+  colored(style, data)  # Пишем само сообщение
+
+proc log*(msg: Message, command: bool) = 
+  ## Логгирует сообщение в консоль
+  let `from` = "https://vk.com/id" & $msg.peerId
+  if command:
+    var args = ""
+    if len(msg.cmd.arguments) > 0:
+      args = "с аргументами " & msg.cmd.arguments.join(", ")
+    else:
+      args = "без аргументов"
+    coloredLog(termcolor.Success, interp"${`from`} > Команда `${msg.cmd.command}` $args")
+  else:
+    coloredLOg(termcolor.Hint, interp"Сообщение `${msg.body}` от ${`from`}")
+

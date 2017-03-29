@@ -24,8 +24,15 @@ type
     timestamp*: int  # Дата отправки
     subject*: string  # Тема 
     cmd*: Command  # Объект команды для данного сообщения
+    body*: string
     attachments*: JsonNode  # Приложения к сообщению
   
+  BotConfig* = object
+    token*: string
+    logMessages*: bool
+    logCommands*: bool
+    reportErrors*: bool
+
   VkApi* = ref object
     token*: string  # Токен VK API
     http*: AsyncHttpClient  # Объект HTTP клиента
@@ -37,6 +44,7 @@ type
     lpData*: LongPollData  # Информация о сервере Long Pooling
     lpURL*: string  # URL сервера Long Pooling
     running*: bool  # Работает ли бот
+    config*: BotConfig
 
 
 
