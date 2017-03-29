@@ -164,13 +164,13 @@ proc mainLoop(bot: VkBot) {.async.} =
       data = await resp.body
       # Парсим ответ сервера в JSON
       jsonData = parseJson(data)
-      events = jsonData["updates"]
       failed = jsonData.getOrDefault("failed")
     
     # Если у нас есть поле failed - значит произошла какая-то ошибка
     if unlikely(failed != nil):
       await bot.initLongPolling(failed)
-      
+      continue
+    let events = jsonData["updates"]  
     for event in events:
       let elems = event.getElems()
       let (eventType, eventData) = (elems[0].getNum(), elems[1..^1])
