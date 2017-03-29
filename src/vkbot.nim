@@ -6,6 +6,7 @@ import strutils  # Парсинг строк в числа
 import strtabs  # Для некоторых методов JSON
 import os  # Операции ОС (открытие файла)
 import asyncdispatch  # Асинхронщина
+import unicode  # операции с юникодными строками
 
 # Модули из Nimble
 import strfmt  # используется функция interp
@@ -42,7 +43,7 @@ proc getLongPollUrl(bot: VkBot) =
 proc processCommand(body: string): Command =
   ## Обрабатывает строку {body} и возвращает тип Command
   let values = body.split()
-  return Command(command: values[0], arguments: values[1..values.high()])
+  return Command(command: unicode.toLower(values[0]), arguments: values[1..^1])
   
 proc processMessage(bot:VkBot, msg: Message) {.async.} =
   ## Обрабатывает сообщение: обозначает его прочитанным, 
@@ -153,12 +154,18 @@ proc initLongPolling(bot: VkBot, failData: JsonNode = %* {}) {.async.} =
 proc mainLoop(bot: VkBot) {.async.} =
   ## Главный цикл бота (тут идёт обработка новых событий)
   while bot.running:
-    # Парсим ответ сервера в JSON
-    let resp = await bot.api.http.get(bot.lpUrl)
-    let data = await resp.body
-    let jsonData = parseJson(data)
-    let events = jsonData["updates"]
-    let failed = jsonData.getOrDefault("failed")
+    var resp: AsyncResponse
+    try:
+      resp = await bot.api.http.get(bot.lpUrl)
+    except:
+      # Какая-то ошибка с получением запроса
+      continue
+    let 
+      data = await resp.body
+      # Парсим ответ сервера в JSON
+      jsonData = parseJson(data)
+      events = jsonData["updates"]
+      failed = jsonData.getOrDefault("failed")
     
     # Если у нас есть поле failed - значит произошла какая-то ошибка
     if unlikely(failed != nil):
@@ -174,6 +181,7 @@ proc mainLoop(bot: VkBot) {.async.} =
           await bot.processLpMessage(eventData)
         else:
           discard
+          
     # Нам нужно обновить наш URL с новой меткой времени
     bot.lpData.ts = int(jsonData["ts"].getNum())
     bot.getLongPollUrl()
