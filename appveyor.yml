@@ -24,6 +24,8 @@ environment:
     #   platform: x86
 
 install:
+  - git clone --branch=devel https://github.com/nim-lang/Nim.git C:\projects\nim
+  - cd C:\projects\nim
   - MKDIR %CD%\DIST
   - MKDIR %CD%\DIST\PCRE
   - nuget install pcre -Verbosity quiet -Version 8.33.0.1 -OutputDirectory %CD%\DIST\PCRE
@@ -43,16 +45,11 @@ install:
 
 build_script:
   - bin\nim c koch
-  - koch boot
   - koch boot -d:release
   - koch nimble
   - nimble install -y strfmt
+  - cd C:\projects\nickel
   - nim c -d:release src\vkbot.nim
-
-test_script:
-  - tests\testament\tester --pedantic all -d:nimCoroutines
-  - koch csource
-  - koch zip
 
 deploy:
   provider: GitHub
