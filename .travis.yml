@@ -13,6 +13,7 @@ before_install:
 script:
 - nimble -y install strfmt
 - nim c -d:release src/vkbot.nim
+- ls src  # wtf
 deploy:
   provider: releases
   api_key:
