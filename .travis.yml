@@ -6,7 +6,6 @@ before_install:
 - cd csources && sh build.sh
 - cd ..
 - bin/nim c koch
-- sed -i -e 's,cc = gcc,cc = clang,' config/nim.cfg
 - "./koch boot -d:release"
 - "./koch nimble"
 - export PATH=$PWD/bin:$PATH
