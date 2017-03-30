@@ -1,10 +1,5 @@
 version: '{build}'
 
-cache:
-- 'C:\projects\nim\x86_64-4.9.2-release-win32-seh-rt_v4-rev4.7z'
-- 'C:\projects\nim\sqlite-dll-win64-x64-3160200.zip'
-# - i686-4.9.2-release-win32-dwarf-rt_v4-rev4.7z
-
 matrix:
   fast_finish: true
 
