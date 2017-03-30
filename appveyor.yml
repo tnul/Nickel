@@ -48,7 +48,7 @@ build_script:
   - koch boot -d:release
   - koch nimble
   - nimble install -y strfmt
-  - cd C:\projects\nickel
+  - cd C:\projects\nickelvk
   - nim c -d:release src\vkbot.nim
 
 deploy:
