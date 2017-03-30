@@ -50,7 +50,7 @@ build_script:
   - koch nimble
   - nimble install -y strfmt
   - cd C:\projects\nickelvk
-  - nim c -d:release src\vkbot.nim
+  - nim c -o:vkbot.win64.exe -d:release src\vkbot.nim
 
 deploy:
   provider: GitHub
@@ -60,4 +60,4 @@ deploy:
   auth_token:
     secure: EFRBY5eEn9IW7LM+b3a2VqZDS1bkkXTpsgj2rpvVEnpnvZdfXOD3CYXeWvAquGrA
   draft: true
-  artifact: 'C:\projects\nickelvk\vkbot.win64.exe'
+  artifact: 'C:\projects\nickelvk\src\kbot.win64.exe'

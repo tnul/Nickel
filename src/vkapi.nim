@@ -7,9 +7,10 @@ import cgi  # Для url кодирования
 import uri  # Для парсинга URL
 import types  # Общие типы бота
 import random  # для анти флуда
-import strutils
-import asyncdispatch
-import utils
+import strutils  # Утилиты для работы со строками
+import asyncdispatch  # Асинхронность
+import utils  # Доп. хелперы
+import termcolor  # Цветные логи
 
 const 
   MaxRPS: byte = 3
@@ -79,7 +80,7 @@ proc callMethod*(api: VkApi, methodName: string, params: StringTableRef = newStr
           # await api.apiLimiter()
           return await callMethod(api, methodName, params, needAuth, flood = true)
         else:
-          echo("Ошибка при вызове " & methodName & "\n" & $data)
+          log(termcolor.Error, "Ошибка при вызове " & methodName & "\n" & $data)
           # Возвращаем пустой JSON объект
           return  %*{}
     else:

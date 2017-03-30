@@ -15,7 +15,7 @@ import strfmt  # используется функция interp
 import utils  # Макрос unpack (взят со stackoverflow)
 import types  # Общие типы бота
 import vkapi  # Реализация VK API
-import parsecfg # Парсинг файла конфигурации
+import config # Парсинг файла конфигурации
 
 import termcolor  # Цвета в консоли
 
@@ -28,29 +28,7 @@ const Commands = ["привет", "тест", "время", "пошути", "р�
                   "курс","мемы", "двач", "блокнот", "шар"]
 
 
-proc parseConfig(path: string): BotConfig = 
-  try:
-    let data = loadConfig(path)
-    return BotConfig(
-      token: data.getSectionValue("Авторизация", "токен"),
-      logMessages: data.getSectionValue("Бот", "сообщения").parseBool(),
-      logCommands: data.getSectionValue("Бот", "команды").parseBool(),
-      reportErrors: data.getSectionValue("Ошибки", "ошибки").parseBool(),
-      fullReport: data.getSectionValue("Ошибки", "полные_ошибки").parseBool(),
-      logErrors: data.getSectionValue("Ошибки", "лог_ошибок").parseBool(),
-      errorMessage: data.getSectionValue("Сообщения", "ошибка")
-    )
-  except:
-    echo("Не удалось загрузить конфигурацию, проверьте файл settings.ini!")
-    quit(1)
 
-proc log(config: BotConfig) = 
-  echo("Логгировать сообщения - " & $config.logMessages)
-  echo("Логгировать команды - " & $config.logCommands)
-  echo("Сообщение при ошибке - " & $config.errorMessage)
-  echo("Отправлять ошибки пользователям - " & $config.reportErrors)
-  echo("Выводить ошибки в консоль - " & $config.logErrors)
-  echo("Отправлять полный лог ошибки пользователям - " & $config.fullReport)
 
 proc getLongPollUrl(bot: VkBot) =
   ## Получает URL для Long Polling на основе данных LongPolling бота
@@ -137,7 +115,7 @@ proc processLpMessage(bot: VkBot, event: seq[JsonNode]) {.async.} =
       errorMessage &= "\n" & err & "\n" & getCurrentExceptionMsg()
     if bot.config.logErrors:
       # Если нужно писать ошибки в консоль
-      coloredLog(termcolor.Error, err & "\n" & getCurrentExceptionMsg())
+      log(termcolor.Error, err & "\n" & getCurrentExceptionMsg())
     # Отправляем ошибку
     await bot.api.answer(message, errorMessage)
 
@@ -235,14 +213,14 @@ proc gracefulShutdown() {.noconv.} =
   quit(0)
 
 when isMainModule:
-  echo("Загрузка настроек из settings.ini...")
-  let config = parseConfig("settings.ini")
+  log(termcolor.Warning, "Загрузка настроек из settings.ini...")
+  let cfg = parseConfig()
   # Выводим значения конфига (кроме токена)
-  config.log()
-  var bot = newBot(config)
+  cfg.log()
+  var bot = newBot(cfg)
   # Set our hook to Control+C - will be useful in future
   # (close database, end queries etc...)
   setControlCHook(gracefulShutdown)
-  echo("Запуск главного цикла бота...")
+  log(termcolor.Warning, "Запуск главного цикла бота...")
   asyncCheck bot.startBot()
   asyncdispatch.runForever()
