@@ -18,6 +18,7 @@ import vkapi  # Реализация VK API
 import parsecfg # Парсинг файла конфигурации
 
 import termcolor  # Цвета в консоли
+
 # Импорт плагинов
 import plugins/[example, greeting, curtime, joke, 
                 sayrandom, shutdown, currency, dvach, notepad, soothsayer]
@@ -28,16 +29,20 @@ const Commands = ["привет", "тест", "время", "пошути", "р�
 
 
 proc parseConfig(path: string): BotConfig = 
-  let data = loadConfig(path)
-  return BotConfig(
-    token: data.getSectionValue("Авторизация", "токен"),
-    logMessages: data.getSectionValue("Бот", "сообщения").parseBool(),
-    logCommands: data.getSectionValue("Бот", "команды").parseBool(),
-    reportErrors: data.getSectionValue("Ошибки", "ошибки").parseBool(),
-    fullReport: data.getSectionValue("Ошибки", "полные_ошибки").parseBool(),
-    logErrors: data.getSectionValue("Ошибки", "лог_ошибок").parseBool(),
-    errorMessage: data.getSectionValue("Сообщения", "ошибка")
-  )
+  try:
+    let data = loadConfig(path)
+    return BotConfig(
+      token: data.getSectionValue("Авторизация", "токен"),
+      logMessages: data.getSectionValue("Бот", "сообщения").parseBool(),
+      logCommands: data.getSectionValue("Бот", "команды").parseBool(),
+      reportErrors: data.getSectionValue("Ошибки", "ошибки").parseBool(),
+      fullReport: data.getSectionValue("Ошибки", "полные_ошибки").parseBool(),
+      logErrors: data.getSectionValue("Ошибки", "лог_ошибок").parseBool(),
+      errorMessage: data.getSectionValue("Сообщения", "ошибка")
+    )
+  except:
+    echo("Не удалось загрузить конфигурацию, проверьте файл settings.ini!")
+    quit(1)
 
 proc log(config: BotConfig) = 
   echo("Логгировать сообщения - " & $config.logMessages)
