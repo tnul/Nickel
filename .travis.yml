@@ -13,11 +13,12 @@ before_install:
 script:
 - nimble -y install strfmt
 - nim c -d:release src/vkbot.nim
-- ls src  # wtf
 deploy:
   provider: releases
   api_key:
     secure: uuIGB5GU1rfPhG47LfbGXXz2NnIaH2eoiFDWfUV/ffK2z/tlpLxHczWcoj+9WDVhhhdI0cU9Ns0HLNmAFxukE5BRkfAU7fu4ghPrC5fpu+4M4W4I3r1jaSyDOwdjPPCPzH5Jlnik9L+3cQ6cC3DckaEhbIjim9zU0rhBokPLRX1+gKGYNuD9/17C1j7fwNnmRVo2JL3QPvlR271aaJNC3bCTdQeR1ERog7plCsLzZk12PmnRLwwkN/3IgZ9GhL9XrmgoNRqhZ7reTrqJFsKZgbQddOj9pGTqtEJWpLDke8dZRO0OFNVmaUk9Pqz6q03TEhMK4oJNuJK3hxlCpwD6BZfxmjHB7htpGPEdpCUJcJ35xELI4PE0vjzUaUPjNw6AzVG0XkH6PNglkaxzLt/+xyQDcXmJqFcEsSSF/A/vuwtKHDHGqITDJBmJdMIS1ghtAqR1ddYhFDs+ulewlqPaIpysEU4iBwKIMB2Thc8gdYJ5esmN1NSCRh7lAQ1MwmZcSA7s/9B2iwKJsqNpu9bxjQ1tXNSO80W69EzCld/tOuV61oP6k0/r4AGCVbbNsFQP/jeQNDtz5d3XJwNjoe7WnPYBAhtjyFmVpwoSeQ6921+AAkkc71ljipv5V5HAnGKDh9vs2hnyYOhABxottSeJUmZPqkM+1fSlSB4hR5oFyv8=
-  file: "src/vkbot"
+  file: 
+    - "$PWD/src/vkbot.linux64.exe"
+    - "$PWD/vkbot.linux64.exe"
   on:
     repo: TiberiumN/Nickel
