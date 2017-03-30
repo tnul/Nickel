@@ -53,7 +53,7 @@ proc getMoscowTime*(): string =
   let curTime = getGmTime(getTime()) + initInterval(hours=3)
   return format(curTime, "d'.'M'.'yyyy HH':'mm':'ss")
 
-proc log*(style: ref AnsiStyle, data: string) =
+proc log*(style: ref Style, data: string) =
   ## Выводит сообщение data со стилем style в консоль с указанием времени 
   stdout.write("\e[0;32m")  # Синий цвет
   stdout.write("[" & getClockStr() & "] ")  # Пишем время 

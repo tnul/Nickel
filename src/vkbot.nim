@@ -32,8 +32,9 @@ const Commands = ["привет", "тест", "время", "пошути", "р�
 
 proc getLongPollUrl(bot: VkBot) =
   ## Получает URL для Long Polling на основе данных LongPolling бота
-  let data = bot.lpData
-  let url = interp"https://${data.server}?act=a_check&key=${data.key}&ts=${data.ts}&wait=25&mode=2&version=1"
+  let 
+    data = bot.lpData
+    url = interp"https://${data.server}?act=a_check&key=${data.key}&ts=${data.ts}&wait=25&mode=2&version=1"
   bot.lpUrl = url
 
 proc processCommand(body: string): Command =
@@ -79,24 +80,26 @@ proc processLpMessage(bot: VkBot, event: seq[JsonNode]) {.async.} =
 
   # Конвертируем число в set значений enum'а Flags
   let msgFlags: set[Flags] = cast[set[Flags]](int(flags.getNum()))
-
   # Если мы же и отправили это сообщение - его обрабатывать не нужно
   if Flags.Outbox in msgFlags:
     return
-  let msgPeerId = int(peerId.getNum())
-  let msgBody = text.str.replace("<br>", "\n")
-  # Обрабатываем строку и создаём объект команды
-  let cmd = processCommand(msgBody)
-  # Создаём объект Message
-  let message = Message(
-    msgId: int(msgId.getNum()),
-    peerId: msgPeerId,
-    timestamp: int(ts.getNum()),
-    subject: subject.str,
-    cmd: cmd,
-    body: text.str, 
-    attachments: attaches
-  )
+  
+  let 
+    msgPeerId = int(peerId.getNum())
+    msgBody = text.str.replace("<br>", "\n")
+    # Обрабатываем строку и создаём объект команды
+    cmd = processCommand(msgBody)
+    # Создаём объект Message
+    message = Message(
+      msgId: int(msgId.getNum()),
+      peerId: msgPeerId,
+      timestamp: int(ts.getNum()),
+      subject: subject.str,
+      cmd: cmd,
+      body: text.str, 
+      attachments: attaches
+    )
+
   if bot.config.logCommands and cmd.command in Commands:
     message.log(command = true)
   elif bot.config.logMessages:
@@ -107,10 +110,11 @@ proc processLpMessage(bot: VkBot, event: seq[JsonNode]) {.async.} =
   yield result
   # Если обработка сообщения (или один из плагинов) вызвали ошибку
   if unlikely(result.failed):
-    # Случайные буквы
-    let rnd = antiFlood() & "\n"
-    # Ошибка 
-    let err = repr(getCurrentException())
+    let 
+      # Случайные буквы
+      rnd = antiFlood() & "\n"
+      # Ошибка 
+      err = repr(getCurrentException())
     # Сообщение, котороые мы пошлём
     var errorMessage = rnd & bot.config.errorMessage & "\n"
     if bot.config.fullReport:
@@ -187,10 +191,12 @@ proc mainLoop(bot: VkBot) {.async.} =
     if unlikely(failed != nil):
       await bot.initLongPolling(failed)
       continue
+    
     let events = jsonData["updates"]  
     for event in events:
-      let elems = event.getElems()
-      let (eventType, eventData) = (elems[0].getNum(), elems[1..^1])
+      let 
+        elems = event.getElems()
+        (eventType, eventData) = (elems[0].getNum(), elems[1..^1])
 
       case eventType:
         # Код события 4 - у нас новое сообщение

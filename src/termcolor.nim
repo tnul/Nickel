@@ -26,7 +26,7 @@ proc write(code: AnsiCode) =
 ## --------------------------------
 
 const
-  CODE_START = "\27["
+  CodeStart = "\27["
     ## These two characters begin an ANSI escape sequence.
     ## There is also a single-character sequence, \155.
     ## However, only the two-character sequence is recognized by
@@ -34,17 +34,17 @@ const
     ## or devices that support 8-bit bytes but use the
     ## 0x80–0x9F control character range for other purposes.
 
-  CODE_MIDDLE = ";"
+  CodeMiddle = ";"
     ## Signals another code is coming.
 
-  CODE_END = "m"
+  CodeEnd = "m"
     ## The final byte is technically any character
     ## in the range 64 to 126.  'm' seems to be standard, though.
 
-  ANSI_INVALID_CODE: AnsiCode = 256
+  InvalidCode: AnsiCode = 256
     ## Used to indicate that no code should be printed.
 
-  RESET: AnsiCode = 0
+  Reset: AnsiCode = 0
     ## Resets all styles to their defaults.
 
 
@@ -53,27 +53,26 @@ proc writeGluedCodeSequence(f: File, codes: seq[AnsiCode]) =
   ## They are printed using write(AnsiCode) defined above,
   ## and glued together with semicolons.
 
-  for i in low(codes)..high(codes)-1:  ## Don't append CODE_MIDDLE to the last
-    var code = codes[i]
-    if code != ANSI_INVALID_CODE:
+  for code in codes[0..^2]:  ## Don't append CODE_MIDDLE to the last
+    if code != InvalidCode:
       write(f, code)
-      write(f, CODE_MIDDLE) ## Signal another AnsiCode is coming
+      write(f, CodeMiddle) ## Signal another AnsiCode is coming
 
-  write(f, codes[high(codes)])  ## Print the final code (no trailing semicolon)
+  write(f, codes[^1])  ## Print the final code (no trailing semicolon)
 
 
 proc writeCodeSequence(f: File, codes: seq[AnsiCode]) =
   ## Given zero or more AnsiCodes `codes`, activate them:
   ## signal a start of sequence, print the sequence, then end the sequence.
 
-  write(f, CODE_START)  ## Begin the escape sequence.
+  write(f, CodeStart)  ## Begin the escape sequence.
 
   ## "Private mode characters" could come here,
   ## but we don't support them.
 
   writeGluedCodeSequence(f, codes)
 
-  write(f, CODE_END)    ## Terminate the escape sequence.
+  write(f, CodeEnd)    ## Terminate the escape sequence.
 
 
 ## ANSI-aware replacements for write() and echo()
@@ -81,7 +80,7 @@ proc writeCodeSequence(f: File, codes: seq[AnsiCode]) =
 
 proc writeReset(f: File) =
   ## Reset output to whatever is defined to be normal
-  writeCodeSequence(f, @[RESET])
+  writeCodeSequence(f, @[Reset])
 
 
 proc writeANSI*[T](f: File, s: T, codes: seq[AnsiCode]) =
@@ -110,52 +109,52 @@ proc echoANSI*[T](s: T, codes: seq[AnsiCode]) =
 ## ----------
 
 type
-  AnsiTextColor* = enum  ## Add these to TEXT_COLOR_BASE or BG_COLOR_BASE.
-    TEXT_BLACK,
-    TEXT_RED,
-    TEXT_GREEN,
-    TEXT_YELLOW,
-    TEXT_BLUE,
-    TEXT_MAGENTA,
-    TEXT_CYAN,
-    TEXT_WHITE
+  TextColor* {.pure.} = enum  ## Add these to TEXT_COLOR_BASE or BG_COLOR_BASE.
+    Black,
+    Red,
+    Green,
+    Yellow,
+    Blue,
+    Magenta,
+    Cyan,
+    White
 
 const
-  TEXT_COLOR_BASE = 30
+  TextColorBase = 30
     ## Add this to an COLOR to obtain a text-color code.
 
-proc toAnsiCode(c: AnsiTextColor): AnsiCode = # {.noSideEffect.} 
+proc code(c: TextColor): AnsiCode = # {.noSideEffect.} 
   ## Obtain the code for text color of this color.
   return cast[AnsiCode](cast[int](c) + TEXT_COLOR_BASE)
 
-proc defaultSetting(c: AnsiTextColor): bool =
-  return c == TEXT_BLACK
+proc default(c: TextColor): bool =
+  return c == TextColor.Black
 
 
 ## Background color
 ## ----------------
 
 type
-  AnsiBackgroundColor* = enum  ## Add these to TEXT_COLOR_BASE or BG_COLOR_BASE.
-    BACKGROUND_BLACK,
-    BACKGROUND_RED,
-    BACKGROUND_GREEN,
-    BACKGROUND_YELLOW,
-    BACKGROUND_BLUE,
-    BACKGROUND_MAGENTA,
-    BACKGROUND_CYAN,
-    BACKGROUND_WHITE
+  BackgroundColor* {.pure.} = enum  ## Add these to TEXT_COLOR_BASE or BG_COLOR_BASE.
+    Black,
+    Red,
+    Green,
+    Yellow,
+    Blue,
+    Magenta,
+    Cyan,
+    White
 
 const
-  BG_COLOR_BASE = 40
+  BackgroundColorBase = 40
     ## Add this to an COLOR to obtain a background-color code.
 
-proc toAnsiCode*(c: AnsiBackgroundColor): AnsiCode = # {.noSideEffect.} 
+proc code*(c: BackgroundColor): AnsiCode = # {.noSideEffect.} 
   ## Obtain the code for background color of this color.
-  return cast[AnsiCode](cast[int](c) + BG_COLOR_BASE)
+  return cast[AnsiCode](cast[int](c) + BackgroundColorBase)
 
-proc defaultSetting(c: AnsiBackgroundColor): bool =
-  return c == BACKGROUND_WHITE
+proc default(c: BackgroundColor): bool =
+  return c == BackgroundColor.White
 
 ## Intensity
 ## ---------
@@ -163,16 +162,16 @@ proc defaultSetting(c: AnsiBackgroundColor): bool =
 ## FEINT is not widely supported.
 
 type
-  AnsiIntensity* = enum INTENSITY_NORMAL, INTENSITY_BOLD, INTENSITY_FEINT
+  Intensity* {.pure.} = enum Normal, Bold, Feint
 
-proc toAnsiCode(c:AnsiIntensity): AnsiCode =
+proc code(c: Intensity): AnsiCode =
   case c
-  of INTENSITY_NORMAL: return 22
-  of INTENSITY_BOLD: return 1
-  of INTENSITY_FEINT: return 2
+  of Intensity.Normal: return 22
+  of Intensity.Bold: return 1
+  of Intensity.Feint: return 2
 
-proc defaultSetting(c: AnsiIntensity): bool =
-  return c == INTENSITY_NORMAL
+proc default(c: Intensity): bool =
+  return c == Intensity.Normal
 
 
 ## Inversion
@@ -181,15 +180,15 @@ proc defaultSetting(c: AnsiIntensity): bool =
 ## Note: YES can also mean: swap FG and BG.
 
 type
-  AnsiInversion* = enum INVERSION_NO, INVERSION_YES
+  Inversion* {.pure.} = enum No, Yes
 
-proc toAnsiCode(c: AnsiInversion): AnsiCode =
+proc code(c: Inversion): AnsiCode =
   case c
-  of INVERSION_NO: return 27
-  of INVERSION_YES: return 7
+  of Inversion.No: return 27
+  of Inversion.Yes: return 7
 
-proc defaultSetting(c: AnsiInversion): bool =
-  return c == INVERSION_NO
+proc default(c: Inversion): bool =
+  return c == Inversion.No
 
 
 ## Concealment
@@ -198,15 +197,15 @@ proc defaultSetting(c: AnsiInversion): bool =
 ## Not widely supported.
 
 type
-  AnsiConcealment* = enum CONCEALMENT_NO, CONCEALMENT_YES
+  Concealment* {.pure.} = enum No, Yes
 
-proc toAnsiCode(c: AnsiConcealment): AnsiCode =
+proc code(c: Concealment): AnsiCode =
   case c
-  of CONCEALMENT_NO: return 28
-  of CONCEALMENT_YES: return 8
+  of Concealment.No: return 28
+  of Concealment.Yes: return 8
 
-proc defaultSetting(c: AnsiConcealment): bool =
-  return c == CONCEALMENT_NO
+proc default(c: Concealment): bool =
+  return c == Concealment.No
 
 
 ## Font style
@@ -215,16 +214,16 @@ proc defaultSetting(c: AnsiConcealment): bool =
 ## Italic and Fraktur are not widely supported.
 
 type
-  AnsiFontStyle* = enum FONTSTYLE_DEFAULT, FONTSTYLE_ITALIC, FONTSTYLE_FRAKTUR
+  FontStyle* {.pure.} = enum Default, Italic, Fraktur
 
-proc toAnsiCode(c: AnsiFontStyle): AnsiCode =
+proc code(c: FontStyle): AnsiCode =
   case c
-  of FONTSTYLE_DEFAULT: return 23
-  of FONTSTYLE_ITALIC: return 3
-  of FONTSTYLE_FRAKTUR: return 20
+  of FontStyle.Default: return 23
+  of FontStyle.Italic: return 3
+  of FontStyle.Fraktur: return 20
 
-proc defaultSetting(c: AnsiFontStyle): bool =
-  return c == FONTSTYLE_DEFAULT
+proc default(c: FontStyle): bool =
+  return c == FontStyle.Default
 
 
 ## Font
@@ -233,53 +232,53 @@ proc defaultSetting(c: AnsiFontStyle): bool =
 ## Select the nth alternate font.
 
 type
-  AnsiFont* = enum
-    FONT_PRIMARY,
-    FONT_ALT_1,
-    FONT_ALT_2,
-    FONT_ALT_3,
-    FONT_ALT_4,
-    FONT_ALT_5,
-    FONT_ALT_6,
-    FONT_ALT_7,
-    FONT_ALT_8,
-    FONT_ALT_9
+  Font* {.pure.} = enum
+    Primary,
+    Alt1,
+    Alt2,
+    Alt3,
+    Alt4,
+    Alt5,
+    Alt6,
+    Alt7,
+    Alt8,
+    Alt9
 
-proc toAnsiCode(c: AnsiFont): AnsiCode =
+proc code(c: Font): AnsiCode =
   return cast[AnsiCode](cast[int](c)+10)
 
-proc defaultSetting(c: AnsiFont): bool =
-  return c == FONT_PRIMARY
+proc default(c: Font): bool =
+  return c == Font.Primary
 
 
 ## Underlining
 ## -----------
 
 type
-  AnsiUnderline* = enum UNDERLINE_NO, UNDERLINE_YES
+  Underline* {.pure.} = enum No, Yes
 
-proc toAnsiCode(c: AnsiUnderline): AnsiCode =
+proc code(c: Underline): AnsiCode =
   case c 
-  of UNDERLINE_NO: return 24
-  of UNDERLINE_YES: return 4
+  of Underline.No: return 24
+  of Underline.Yes: return 4
 
-proc defaultSetting(c: AnsiUnderline): bool =
-  return c == UNDERLINE_NO
+proc default(c: Underline): bool =
+  return c == Underline.No
 
 
 ## Overlining
 ## ----------
 
 type
-  AnsiOverline* = enum OVERLINE_NO, OVERLINE_YES
+  Overline* {.pure.} = enum No, Yes
 
-proc toAnsiCode(c: AnsiOverline): AnsiCode =
+proc code(c: Overline): AnsiCode =
   case c
-  of OVERLINE_NO: return 55
-  of OVERLINE_YES: return 53
+  of Overline.No: return 55
+  of Overline.Yes: return 53
 
-proc defaultSetting(c: AnsiOverline): bool =
-  return c == OVERLINE_NO
+proc default(c: Overline): bool =
+  return c == Overline.Yes
 
 
 ## Crossing out
@@ -288,15 +287,15 @@ proc defaultSetting(c: AnsiOverline): bool =
 ## Marked for deletion; NWS.
 
 type
-  AnsiCrossedOut* = enum CROSSEDOUT_NO, CROSSEDOUT_YES
+  CrossedOut* {.pure.} = enum No, Yes
 
-proc toAnsiCode(c: AnsiCrossedOut): AnsiCode =
+proc code(c: CrossedOut): AnsiCode =
   case c
-  of CROSSEDOUT_NO: return 29
-  of CROSSEDOUT_YES: return 9
+  of CrossedOut.No: return 29
+  of CrossedOut.Yes: return 9
 
-proc defaultSetting(c: AnsiCrossedOut): bool =
-  return c == CROSSEDOUT_NO
+proc default(c: CrossedOut): bool =
+  return c == CrossedOut.No
 
 
 ## Ideogram underlining
@@ -305,19 +304,19 @@ proc defaultSetting(c: AnsiCrossedOut): bool =
 ## Or on right side; NWS.
 
 type
-  AnsiIdeogramUnderline* = enum
-    IDEOGRAMUNDERLINE_NO,
-    IDEOGRAMUNDERLINE_SINGLE,
-    IDEOGRAMUNDERLINE_DOUBLE
+  IdeogramUnderline* {.pure.} = enum
+    No,
+    Single,
+    Double
 
-proc toAnsiCode(c: AnsiIdeogramUnderline): AnsiCode =
+proc code(c: IdeogramUnderline): AnsiCode =
   case c
-  of IDEOGRAMUNDERLINE_NO:     return ANSI_INVALID_CODE  ## ???
-  of IDEOGRAMUNDERLINE_SINGLE: return 60
-  of IDEOGRAMUNDERLINE_DOUBLE: return 61
+  of IdeogramUnderline.No:     return InvalidCode  ## ???
+  of IdeogramUnderline.Single: return 60
+  of IdeogramUnderline.Double: return 61
 
-proc defaultSetting(c: AnsiIdeogramUnderline): bool =
-  return c == IDEOGRAMUNDERLINE_NO
+proc default(c: IdeogramUnderline): bool =
+  return c == IdeogramUnderline.No
 
 
 ## Ideogram overlining
@@ -326,19 +325,19 @@ proc defaultSetting(c: AnsiIdeogramUnderline): bool =
 ## Or on left side; NWS.
 
 type
-  AnsiIdeogramOverline* = enum
-    IDEOGRAMOVERLINE_NO,
-    IDEOGRAMOVERLINE_SINGLE,
-    IDEOGRAMOVERLINE_DOUBLE
+  IdeogramOverline* {.pure.} = enum
+    No,
+    Single,
+    Double
 
-proc toAnsiCode(c: AnsiIdeogramOverline): AnsiCode =
+proc code(c: IdeogramOverline): AnsiCode =
   case c
-  of IDEOGRAMOVERLINE_NO: return ANSI_INVALID_CODE  ## ???
-  of IDEOGRAMOVERLINE_SINGLE: return 62
-  of IDEOGRAMOVERLINE_DOUBLE: return 63
+  of IdeogramOverline.No: return InvalidCode  ## ???
+  of IdeogramOverline.Single: return 62
+  of IdeogramOverline.Double: return 63
 
-proc defaultSetting(c: AnsiIdeogramOverline): bool =
-  return c == IDEOGRAMOVERLINE_NO
+proc default(c: IdeogramOverline): bool =
+  return c == IdeogramOverline.No
 
 
 ## Ideogram stress
@@ -347,15 +346,15 @@ proc defaultSetting(c: AnsiIdeogramOverline): bool =
 ## NWS.
 
 type
-  AnsiIdeogramStress* = enum IDEOGRAMSTRESS_NO, IDEOGRAMSTRESS_YES
+  IdeogramStress* {.pure.} = enum No, Yes
 
-proc toAnsiCode(c: AnsiIdeogramStress): AnsiCode =
+proc code(c: IdeogramStress): AnsiCode =
   case c
-  of IDEOGRAMSTRESS_NO: return ANSI_INVALID_CODE
-  of IDEOGRAMSTRESS_YES: return 64
+  of IdeogramStress.No: return InvalidCode
+  of IdeogramStress.Yes: return 64
 
-proc defaultSetting(c: AnsiIdeogramStress): bool =
-  return c == IDEOGRAMSTRESS_NO
+proc default(c: IdeogramStress): bool =
+  return c == IdeogramStress.No
 
 
 ## Blinking
@@ -365,32 +364,32 @@ proc defaultSetting(c: AnsiIdeogramStress): bool =
 ## Rapid is 150 per minute or more; NWS.
 
 type
-  AnsiBlink* = enum BLINK_NO, BLINK_SLOW, BLINK_RAPID
+  Blinking* {.pure.} = enum No, Slow, Rapid
 
-proc toAnsiCode(c: AnsiBlink): AnsiCode =
+proc code(c: Blinking): AnsiCode =
   case c
-  of BLINK_NO: return 25
-  of BLINK_SLOW: return 5
-  of BLINK_RAPID: return 6
+  of Blinking.No: return 25
+  of Blinking.Slow: return 5
+  of Blinking.Rapid: return 6
 
-proc defaultSetting(c: AnsiBlink): bool =
-  return c == BLINK_NO
+proc default(c: Blinking): bool =
+  return c == Blinking.No
 
 
 ## Framing
 ## -------
 
 type
-  AnsiFrame* = enum FRAME_NO, FRAME_YES, FRAME_ENCIRCLE
+  Frame* {.pure.} = enum No, Yes, Encircle
 
-proc toAnsiCode(c: AnsiFrame): AnsiCode =
+proc code(c: Frame): AnsiCode =
   case c
-  of FRAME_NO: return 54
-  of FRAME_YES: return 51
-  of FRAME_ENCIRCLE: return 52
+  of Frame.No: return 54
+  of Frame.Yes: return 51
+  of Frame.Encircle: return 52
 
-proc defaultSetting(c: AnsiFrame): bool =
-  return c == FRAME_NO
+proc default(c: Frame): bool =
+  return c == Frame.No
 
 
 ## Other ANSI style codes
@@ -409,9 +408,9 @@ proc defaultSetting(c: AnsiFrame): bool =
 ## NWS: Not Widely Supported.
 
 const
-  DEFAULT_TEXT_COLOR*:         AnsiCode = 39  ## Implementation defined
-  DEFAULT_BACKGROUND_COLOR*:   AnsiCode = 49  ## Implementation defined.
-  BOLD_OFF*:                   AnsiCode = 21  ## Or double underline; NWS.
+  DefaultTextColor*:         AnsiCode = 39  ## Implementation defined
+  DefaultBackgroundColor*:   AnsiCode = 49  ## Implementation defined.
+  BoldOff*:                   AnsiCode = 21  ## Or double underline; NWS.
 
 
 
@@ -420,43 +419,43 @@ const
 ## ---------------------------------------------------------------------------##
 
 type
-  AnsiStyle* = object
+  Style* = object
     # This class encapsulates all of the style classes above
     # into one style that can be given a semantic association;
     # e.g. red+bold+underlined may indicate a fatal error.
-    textColor:          AnsiTextColor
-    backgroundColor:    AnsiBackgroundColor
-    intensity*:         AnsiIntensity
-    inversion*:         AnsiInversion
-    concealment*:       AnsiConcealment
-    fontStyle*:         AnsiFontStyle
-    font*:              AnsiFont
-    underline*:         AnsiUnderline
-    overline*:          AnsiOverline
-    crossedOut*:        AnsiCrossedOut
-    ideogramUnderline*: AnsiIdeogramUnderline
-    ideogramOverline*:  AnsiIdeogramOverline
-    ideogramStress*:    AnsiIdeogramStress
-    blink*:             AnsiBlink
-    frame*:             AnsiFrame
+    textColor:          TextColor
+    backgroundColor:    BackgroundColor
+    intensity*:         Intensity
+    inversion*:         Inversion
+    concealment*:       Concealment
+    fontStyle*:         FontStyle
+    font*:              Font
+    underline*:         Underline
+    overline*:          Overline
+    crossedOut*:        CrossedOut
+    ideogramUnderline*: IdeogramUnderline
+    ideogramOverline*:  IdeogramOverline
+    ideogramStress*:    IdeogramStress
+    blinking*:             Blinking
+    frame*:             Frame
 
 
-proc newAnsiStyle*(
-      textColor:         AnsiTextColor         = TEXT_BLACK,
-      backgroundColor:   AnsiBackgroundColor   = BACKGROUND_WHITE,
-      intensity:         AnsiIntensity         = INTENSITY_NORMAL,
-      inversion:         AnsiInversion         = INVERSION_NO,
-      concealment:       AnsiConcealment       = CONCEALMENT_NO,
-      fontStyle:         AnsiFontStyle         = FONTSTYLE_DEFAULT,
-      font:              AnsiFont              = FONT_PRIMARY,
-      underline:         AnsiUnderline         = UNDERLINE_NO,
-      overline:          AnsiOverline          = OVERLINE_NO,
-      crossedOut:        AnsiCrossedOut        = CROSSEDOUT_NO,
-      ideogramUnderline: AnsiIdeogramUnderline = IDEOGRAMUNDERLINE_NO,
-      ideogramOverline:  AnsiIdeogramOverline  = IDEOGRAMOVERLINE_NO,
-      ideogramStress:    AnsiIdeogramStress    = IDEOGRAMSTRESS_NO,
-      blink:             AnsiBlink             = BLINK_NO,
-      frame:             AnsiFrame             = FRAME_NO): ref AnsiStyle =
+proc newStyle*(
+      textColor:         TextColor         = TextColor.Black,
+      backgroundColor:   BackgroundColor   = BackgroundColor.White,
+      intensity:         Intensity         = Intensity.Normal,
+      inversion:         Inversion         = Inversion.No,
+      concealment:       Concealment       = Concealment.No,
+      fontStyle:         FontStyle         = FontStyle.Default,
+      font:              Font              = Font.Primary,
+      underline:         Underline         = Underline.No,
+      overline:          Overline          = Overline.No,
+      crossedOut:        CrossedOut        = CrossedOut.No,
+      ideogramUnderline: IdeogramUnderline = IdeogramUnderline.No,
+      ideogramOverline:  IdeogramOverline  = IdeogramOverline.No,
+      ideogramStress:    IdeogramStress    = IdeogramStress.No,
+      blinking:          Blinking          = Blinking.No,
+      frame:             Frame             = Frame.No): ref Style =
   # Create a new AnsiStyle object.
   new(result)
   result.textColor = textColor
@@ -472,77 +471,81 @@ proc newAnsiStyle*(
   result.ideogramUnderline = ideogramUnderline
   result.ideogramOverline = ideogramOverline
   result.ideogramStress = ideogramStress
-  result.blink = blink
+  result.blinking = blinking
   result.frame = frame
 
 
-proc getCodes(style: ref AnsiStyle): seq[AnsiCode] =
+proc getCodes(style: ref Style): seq[AnsiCode] =
   # Create a list of ANSI codes that will generate the desired effect.
   # If a style is the default, we don't omit it.
   result = @[]
-  if not defaultSetting(style.textColor):
-    result.add(toAnsiCode(style.textColor))
+  if not style.textColor.default:
+    result.add(style.textColor.code)
 
-  if not defaultSetting(style.backgroundColor):
-    result.add(toAnsiCode(style.backgroundColor))
+  if not style.backgroundColor.default:
+    result.add(style.backgroundColor.code)
 
-  if not defaultSetting(style.intensity):
-    result.add(toAnsiCode(style.intensity))
+  if not style.intensity.default:
+    result.add(style.intensity.code)
 
-  if not defaultSetting(style.inversion):
-    result.add(toAnsiCode(style.inversion))
+  if not style.inversion.default:
+    result.add(style.inversion.code)
 
-  if not defaultSetting(style.concealment):
-    result.add(toAnsiCode(style.concealment))
+  if not style.concealment.default:
+    result.add(style.concealment.code)
 
-  if not defaultSetting(style.fontStyle):
-    result.add(toAnsiCode(style.fontStyle))
+  if not style.fontStyle.default:
+    result.add(style.fontStyle.code)
 
-  if not defaultSetting(style.font):
-    result.add(toAnsiCode(style.font))
+  if not style.font.default:
+    result.add(style.font.code)
 
-  if not defaultSetting(style.underline):
-    result.add(toAnsiCode(style.underline))
+  if not style.underline.default:
+    result.add(style.underline.code)
 
-  if not defaultSetting(style.overline):
-    result.add(toAnsiCode(style.overline))
+  if not style.overline.default:
+    result.add(style.overline.code)
 
-  if not defaultSetting(style.crossedOut):
-    result.add(toAnsiCode(style.crossedOut))
+  if not style.crossedOut.default:
+    result.add(style.crossedOut.code)
 
-  if not defaultSetting(style.ideogramUnderline):
-    result.add(toAnsiCode(style.ideogramUnderline))
+  if not style.ideogramUnderline.default:
+    result.add(style.ideogramUnderline.code)
 
-  if not defaultSetting(style.ideogramOverline):
-    result.add(toAnsiCode(style.ideogramOverline))
+  if not style.ideogramOverline.default:
+    result.add(style.ideogramOverline.code)
 
-  if not defaultSetting(style.ideogramStress):
-    result.add(toAnsiCode(style.ideogramStress))
+  if not style.ideogramStress.default:
+    result.add(style.ideogramStress.code)
 
-  if not defaultSetting(style.blink):
-    result.add(toAnsiCode(style.blink))
+  if not style.blinking.default:
+    result.add(style.blinking.code)
 
-  if not defaultSetting(style.frame):
-    result.add(toAnsiCode(style.frame))
+  if not style.frame.default:
+    result.add(style.frame.code)
 
 
-proc write*[T](style: ref AnsiStyle, f: File, s: T) =
+proc write*[T](style: ref Style, f: File, s: T) =
   # The same as system's write(), but prepends the ANSI style
   # and appends a reset.
   writeANSI(f, s, getCodes(style))
 
-proc colored*[T](style: ref AnsiStyle, s: T) =
+proc colored*[T](style: ref Style, s: T) =
   # Analogous to system's echo().
   style.write(stdout, s)
-  write(stdout, "\n") # echo("") fails???
+  echo("") # echo("") fails???
 
 ################################################################################
 ##                             SOME USEFUL STYLES                             ##
 ## ---------------------------------------------------------------------------##
 
 let
-  Success* = newAnsiStyle(textColor = TEXT_YELLOW)
-  Warning* = newAnsiStyle(textColor = TEXT_YELLOW, intensity = INTENSITY_BOLD)
-  Error* = newAnsiStyle(textColor = TEXT_RED, intensity = INTENSITY_BOLD)
-  Hint* = newAnsiStyle(textColor = TEXT_CYAN)
-  Fatal* = newAnsiStyle(textColor = TEXT_RED, intensity = INTENSITY_BOLD, underline = UNDERLINE_YES)
+  Success* = newStyle(textColor = TextColor.Yellow)
+  Warning* = newStyle(textColor = TextColor.Yellow, intensity = Intensity.Bold)
+  Error* = newStyle(textColor = TextColor.Red, intensity = Intensity.Bold)
+  Hint* = newStyle(textColor = TextColor.Cyan)
+  Fatal* = newStyle(
+    textColor = TextColor.Red, 
+    intensity = Intensity.Bold, 
+    underline = Underline.Yes,
+  )
