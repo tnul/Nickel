@@ -16,7 +16,7 @@ const
 
 [Сообщения]
 # Сообщение, которое отправляется пользователям, если "ошибки" включено
-ошибка = "Произошла ошибка при выполнении бота:\n"
+ошибка = "Произошла ошибка при выполнении бота:"
 
 [Ошибки]
 ошибки = True  # Нужно ли сообщать пользователям, когда в каком-топлагине произошла ошибка?
@@ -54,13 +54,15 @@ proc parseConfig*(): BotConfig =
         logErrors: data.getSectionValue("Ошибки", "лог_ошибок").parseBool(),
         errorMessage: data.getSectionValue("Сообщения", "ошибка")
       )
+
     if config.token == "":
-      log(termcolor.Error, NoTokenError)
+      log(termcolor.Fatal, NoTokenError)
       quit(1)
+    log(termcolor.Warning, "Загрузка настроек из settings.ini...")
     return config
   except:
     # Если произошла какая-то ошибка при загрузке конфига
-    log(termcolor.Error, ConfigLoadError)
+    log(termcolor.Fatal, ConfigLoadError)
     quit(1)
 
 proc log*(config: BotConfig) =

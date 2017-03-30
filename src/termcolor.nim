@@ -545,3 +545,4 @@ let
   Warning* = newAnsiStyle(textColor = TEXT_YELLOW, intensity = INTENSITY_BOLD)
   Error* = newAnsiStyle(textColor = TEXT_RED, intensity = INTENSITY_BOLD)
   Hint* = newAnsiStyle(textColor = TEXT_CYAN)
+  Fatal* = newAnsiStyle(textColor = TEXT_RED, intensity = INTENSITY_BOLD, underline = UNDERLINE_YES)

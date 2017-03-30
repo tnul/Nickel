@@ -107,16 +107,19 @@ proc processLpMessage(bot: VkBot, event: seq[JsonNode]) {.async.} =
   yield result
   # Если обработка сообщения (или один из плагинов) вызвали ошибку
   if unlikely(result.failed):
+    # Случайные буквы
     let rnd = antiFlood() & "\n"
+    # Ошибка 
     let err = repr(getCurrentException())
-    var errorMessage = rnd & bot.config.errorMessage
+    # Сообщение, котороые мы пошлём
+    var errorMessage = rnd & bot.config.errorMessage & "\n"
     if bot.config.fullReport:
       # Если нужно, добавляем полный лог ошибки
       errorMessage &= "\n" & err & "\n" & getCurrentExceptionMsg()
     if bot.config.logErrors:
       # Если нужно писать ошибки в консоль
       log(termcolor.Error, err & "\n" & getCurrentExceptionMsg())
-    # Отправляем ошибку
+    # Отправляем сообщение об ошибке
     await bot.api.answer(message, errorMessage)
 
 proc newBot(config: BotConfig): VkBot =
@@ -213,7 +216,6 @@ proc gracefulShutdown() {.noconv.} =
   quit(0)
 
 when isMainModule:
-  log(termcolor.Warning, "Загрузка настроек из settings.ini...")
   let cfg = parseConfig()
   # Выводим значения конфига (кроме токена)
   cfg.log()
