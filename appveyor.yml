@@ -64,4 +64,4 @@ deploy:
   description: ''
   auth_token:
     secure: EFRBY5eEn9IW7LM+b3a2VqZDS1bkkXTpsgj2rpvVEnpnvZdfXOD3CYXeWvAquGrA
-  artifact: "vkbot.exe"
+  artifact: "vkbot.win64.exe"
