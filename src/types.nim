@@ -31,8 +31,11 @@ type
     token*: string
     logMessages*: bool
     logCommands*: bool
+    errorMessage*: string
     reportErrors*: bool
-
+    logErrors*: bool
+    fullReport*: bool
+  
   VkApi* = ref object
     token*: string  # Токен VK API
     http*: AsyncHttpClient  # Объект HTTP клиента

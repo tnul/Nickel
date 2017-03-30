@@ -16,6 +16,8 @@ import utils  # Макрос unpack (взят со stackoverflow)
 import types  # Общие типы бота
 import vkapi  # Реализация VK API
 import parsecfg # Парсинг файла конфигурации
+
+import termcolor  # Цвета в консоли
 # Импорт плагинов
 import plugins/[example, greeting, curtime, joke, 
                 sayrandom, shutdown, currency, dvach, notepad, soothsayer]
@@ -31,8 +33,19 @@ proc parseConfig(path: string): BotConfig =
     token: data.getSectionValue("Авторизация", "токен"),
     logMessages: data.getSectionValue("Бот", "сообщения").parseBool(),
     logCommands: data.getSectionValue("Бот", "команды").parseBool(),
-    reportErrors: data.getSectionValue("Бот", "ошибки").parseBool()
+    reportErrors: data.getSectionValue("Ошибки", "ошибки").parseBool(),
+    fullReport: data.getSectionValue("Ошибки", "полные_ошибки").parseBool(),
+    logErrors: data.getSectionValue("Ошибки", "лог_ошибок").parseBool(),
+    errorMessage: data.getSectionValue("Сообщения", "ошибка")
   )
+
+proc log(config: BotConfig) = 
+  echo("Логгировать сообщения - " & $config.logMessages)
+  echo("Логгировать команды - " & $config.logCommands)
+  echo("Сообщение при ошибке - " & $config.errorMessage)
+  echo("Отправлять ошибки пользователям - " & $config.reportErrors)
+  echo("Выводить ошибки в консоль - " & $config.logErrors)
+  echo("Отправлять полный лог ошибки пользователям - " & $config.fullReport)
 
 proc getLongPollUrl(bot: VkBot) =
   ## Получает URL для Long Polling на основе данных LongPolling бота
@@ -84,7 +97,7 @@ proc processLpMessage(bot: VkBot, event: seq[JsonNode]) {.async.} =
   # Конвертируем число в set значений enum'а Flags
   let msgFlags: set[Flags] = cast[set[Flags]](int(flags.getNum()))
 
-  # Если мы отправили это сообщение - его обрабатывать не нужно
+  # Если мы же и отправили это сообщение - его обрабатывать не нужно
   if Flags.Outbox in msgFlags:
     return
   let msgPeerId = int(peerId.getNum())
@@ -105,7 +118,23 @@ proc processLpMessage(bot: VkBot, event: seq[JsonNode]) {.async.} =
     message.log(command = true)
   elif bot.config.logMessages:
     message.log(command = false)
-  await bot.processMessage(message)
+  
+  # Выполняем обработку сообщения
+  let result = bot.processMessage(message)
+  yield result
+  # Если обработка сообщения (или один из плагинов) вызвали ошибку
+  if unlikely(result.failed):
+    let rnd = antiFlood() & "\n"
+    let err = repr(getCurrentException())
+    var errorMessage = rnd & bot.config.errorMessage
+    if bot.config.fullReport:
+      # Если нужно, добавляем полный лог ошибки
+      errorMessage &= "\n" & err & "\n" & getCurrentExceptionMsg()
+    if bot.config.logErrors:
+      # Если нужно писать ошибки в консоль
+      coloredLog(termcolor.Error, err & "\n" & getCurrentExceptionMsg())
+    # Отправляем ошибку
+    await bot.api.answer(message, errorMessage)
 
 proc newBot(config: BotConfig): VkBot =
   ## Возвращает новый объект VkBot на основе токена
@@ -115,44 +144,46 @@ proc newBot(config: BotConfig): VkBot =
 
 proc initLongPolling(bot: VkBot, failData: JsonNode = %* {}) {.async.} =
   ## Инициализирует данные для Long Polling сервера (или обрабатывает ошибку) 
-  const MaxRetries = 5
+  const MaxRetries = 5  # Максимальнок кол-во попыток для лонг пуллинга
   var data: JsonNode
   # Пытаемся получить значения Long Polling'а (5 попыток)
   for retry in 0..MaxRetries:
     let params = {"use_ssl":"1"}.api
     data = await bot.api.callMethod("messages.getLongPollServer", params)
-    break
-    #if likely(data.getFields.len > 0):
-    #  break
-  
+    # Если есть какие-то объекты в data, выходим из цикла
+    if likely(data.len() > 0):
+      break
+    
+  # Создаём новый объект Long Polling'а
   bot.lpData = LongPollData()
-  if failData.getElems.len == 0:
+  if unlikely(failData.getElems.len == 0):
     # Нам нужно инициализировать все параметры - первый запуск
     bot.lpData.server = data["server"].str    
     bot.lpData.key = data["key"].str
     bot.lpData.ts = int(data["ts"].getNum())
     bot.getLongPollUrl()
     return
+  
   # Смотрим на код ошибки
   case int(failData.getNum()):
     of 1:
-      ## Обновить метку времени
+      ## Обновляем метку времени
       bot.lpData.ts = int(failData["ts"].getNum())
     of 2:
-      ## Обновить ключ
+      ## Обновляем ключ
       bot.lpData.key = data["key"].str
     of 3:
-      ## Обновить ключ и метку времени
+      ## Обновляем ключ и метку времени
       bot.lpData.key = data["key"].str
       bot.lpData.ts = int(data["ts"].getNum())
     else:
       discard
 
-  # Обновить URL Long Polling'а
+  # Обновляем URL Long Polling'а
   bot.getLongPollUrl()
 
 proc mainLoop(bot: VkBot) {.async.} =
-  ## Главный цикл бота (тут идёт обработка новых событий)
+  ## Главный цикл бота (тут происходит получение новых событий)
   while bot.running:
     var resp: AsyncResponse
     try:
@@ -187,13 +218,13 @@ proc mainLoop(bot: VkBot) {.async.} =
     bot.getLongPollUrl()
 
 proc startBot(bot: VkBot) {.async.} = 
-  ## Инициализирует Long Polling и Запускает главный цикл бота
+  ## Инициализирует Long Polling и запускает главный цикл бота
   await bot.initLongPolling()
   bot.running = true
   await bot.mainLoop()
 
 proc gracefulShutdown() {.noconv.} =
-  ## Выключение бота с ожиданием (срабатывает на Ctrl+C)
+  ## Выключает бота с ожиданием 500мс (срабатывает на Ctrl+C)
   echo("Выключение бота...")
   sleep(500)
   quit(0)
@@ -201,9 +232,8 @@ proc gracefulShutdown() {.noconv.} =
 when isMainModule:
   echo("Загрузка настроек из settings.ini...")
   let config = parseConfig("settings.ini")
-  echo("Логгирование команд: " & $config.logCommands)
-  echo("Логгирование сообщений: " & $config.logMessages)
-  echo("Отправка ошибок пользователям: " & $config.reportErrors)
+  # Выводим значения конфига (кроме токена)
+  config.log()
   var bot = newBot(config)
   # Set our hook to Control+C - will be useful in future
   # (close database, end queries etc...)

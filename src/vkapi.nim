@@ -39,11 +39,6 @@ proc setToken*(api: VkApi, token: string) =
   ## Устанавливает токен для использования в API запросах
   api.token = token
 
-proc antiFlood(): string =
-   ## Служит ля обхода анти-флуда Вконтакте (генерирует пять случайных букв)
-   const Alphabet = "ABCDEFGHIJKLMNOPQRSTUWXYZ"
-   return lc[random(Alphabet) | (x <- 0..5), char].join("")
-
 
 proc apiLimiter(api: VkApi) {.async.} =
   ## Увеличиваеи кол-во запущенных запросов, ждёт SleepTime мс, и уменьшает

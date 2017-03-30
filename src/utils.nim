@@ -1,7 +1,7 @@
 # Файл с различными хелперами
 
 # Стандартная библиотека
-import macros, strtabs, times, strutils
+import macros, strtabs, times, strutils, future, random
 # Nimble
 import strfmt
 # Сторонние пакеты
@@ -53,8 +53,7 @@ proc getMoscowTime*(): string =
   let curTime = getGmTime(getTime()) + initInterval(hours=3)
   return format(curTime, "d'.'M'.'yyyy HH':'mm':'ss")
 
-
-proc coloredLog(style: ref AnsiStyle, data: string) =
+proc coloredLog*(style: ref AnsiStyle, data: string) =
   ## Выводит сообщение data со стилем style в консоль с указанием времени 
   stdout.write("\e[0;34m")  # Синий цвет
   stdout.write(getClockStr() & " ")  # Пишем время 
@@ -73,3 +72,7 @@ proc log*(msg: Message, command: bool) =
   else:
     coloredLOg(termcolor.Hint, interp"Сообщение `${msg.body}` от ${`from`}")
 
+proc antiFlood*(): string =
+   ## Служит ля обхода анти-флуда Вконтакте (генерирует пять случайных букв)
+   const Alphabet = "ABCDEFGHIJKLMNOPQRSTUWXYZ"
+   return lc[random(Alphabet) | (x <- 0..4), char].join("")
