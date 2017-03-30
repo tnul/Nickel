@@ -1,4 +1,4 @@
-Nickel (Никель) [![Присоединись к чату на https://gitter.im/NickelVK/Lobby](https://badges.gitter.im/NickelVK/Lobby.svg)](https://gitter.im/NickelVK/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+Nickel (Никель) [![Присоединись к чату на https://gitter.im/NickelVK/Lobby](https://badges.gitter.im/NickelVK/Lobby.svg)](https://gitter.im/NickelVK/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge) [![Travis CI](https://travis-ci.org/TiberiumN/Nickel.svg?branch=master)](https://travis-ci.org/TiberiumN/Nickel) [![App Veyor](https://ci.appveyor.com/api/projects/status/futyiif4dq7blmof/branch/master?svg=true)](https://ci.appveyor.com/project/TiberiumPY/nickelvk/branch/master)
 ======
 
 Чат-бот для ВКонтакте в ранней стадии разработки, написанный на языке Nim.
