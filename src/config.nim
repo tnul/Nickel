@@ -4,34 +4,37 @@ import utils  # Хелперы
 import types  # Типы данных бота
 import termcolor  # Цветная консоль
 import strutils  # Парсинг строк
-
+import utils  # logWithStyle
 # Стандартные настройки
 const 
-  DefaultSettings = """[Авторизация]
-токен = ""  # Введите тут свой токен от группы
+  DefaultSettings = """[Auth]
+token = ""  # Введите тут свой токен от группы
 
-[Бот]
-сообщения = True  # Нужно ли логгировать сообщения? True/False
-команды = True  # Нужно ли логгировать команды? True/False
+[Bot]
+messages = True  # Нужно ли логгировать сообщения? True/False
+commands = True  # Нужно ли логгировать команды? True/False
 
-[Сообщения]
-# Сообщение, которое отправляется пользователям, если "ошибки" включено
-ошибка = "Произошла ошибка при выполнении бота:"
+[Errors]
+report_errors = True  # Нужно ли сообщать пользователям, когда в каком-топлагине произошла ошибка?
+log_errors = True  # Нужно ли писать ошибки вместе с логом в консоль?
+full_errors = True  # Нужно ли отправлять пользователям весь лог ошибки?
 
-[Ошибки]
-ошибки = True  # Нужно ли сообщать пользователям, когда в каком-топлагине произошла ошибка?
-лог_ошибок = True  # Нужно ли писать ошибки вместе с логом в консоль?
-полные_ошибки = True  # Нужно ли отправлять пользователям весь лог ошибки?
+[Messages]
+# Сообщение, которое отправляется пользователям, если "report_errors" включено
+on_error = "Произошла ошибка при выполнении бота:"
 """
 
   FileCreatedMessage = """Был создан файл settings.ini. Пожалуйста
-  измените настройки на свои!"""
+измените настройки на свои!"""
 
   NoTokenError = "Вы не указали токен группы в settings.ini!"
 
   ConfigLoadError = """Не удалось загрузить конфигурацию. Если вы не создавали
 settings.ini, создайте его, переименовав settings.ini.example в settings.ini
 Если у вас уже создан settings.ini, проверьте, всё ли в нём правильно"""
+
+
+
 
 
 proc parseConfig*(): BotConfig =
@@ -46,13 +49,13 @@ proc parseConfig*(): BotConfig =
       # Загружаем конфиг и получаем значения из него
       data = loadConfig("settings.ini")
       config = BotConfig(
-        token: data.getSectionValue("Авторизация", "токен"),
-        logMessages: data.getSectionValue("Бот", "сообщения").parseBool(),
-        logCommands: data.getSectionValue("Бот", "команды").parseBool(),
-        reportErrors: data.getSectionValue("Ошибки", "ошибки").parseBool(),
-        fullReport: data.getSectionValue("Ошибки", "полные_ошибки").parseBool(),
-        logErrors: data.getSectionValue("Ошибки", "лог_ошибок").parseBool(),
-        errorMessage: data.getSectionValue("Сообщения", "ошибка")
+        token: data.getSectionValue("Auth", "token"),
+        logMessages: data.getSectionValue("Bot", "messages").parseBool(),
+        logCommands: data.getSectionValue("Bot", "commands").parseBool(),
+        reportErrors: data.getSectionValue("Errors", "report_errors").parseBool(),
+        fullReport: data.getSectionValue("Errors", "full_errors").parseBool(),
+        logErrors: data.getSectionValue("Errors", "log_errors").parseBool(),
+        errorMessage: data.getSectionValue("Messages", "on_error")
       )
 
     if config.token == "":
@@ -65,10 +68,12 @@ proc parseConfig*(): BotConfig =
     log(termcolor.Fatal, ConfigLoadError)
     quit(1)
 
+
 proc log*(config: BotConfig) =
-  log(termcolor.Hint, "Логгировать сообщения - " & $config.logMessages)
-  log(termcolor.Hint, "Логгировать команды - " & $config.logCommands)
-  log(termcolor.Hint, "Сообщение при ошибке - " & $config.errorMessage)
-  log(termcolor.Hint, "Отправлять ошибки пользователям - " & $config.reportErrors)
-  log(termcolor.Hint, "Выводить ошибки в консоль - " & $config.logErrors)
-  log(termcolor.Hint, "Отправлять полный лог ошибки пользователям - " & $config.fullReport)
+  logWithStyle(termcolor.Hint):
+    ("Логгировать сообщения - " & $config.logMessages)
+    ("Логгировать команды - " & $config.logCommands)
+    ("Сообщение при ошибке - " & $config.errorMessage)
+    ("Отправлять ошибки пользователям - " & $config.reportErrors)
+    ("Выводить ошибки в консоль - " & $config.logErrors)
+    ("Отправлять полный лог ошибки пользователям - " & $config.fullReport)

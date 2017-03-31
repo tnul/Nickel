@@ -72,6 +72,21 @@ proc log*(msg: Message, command: bool) =
   else:
     log(termcolor.Hint, interp"Сообщение `${msg.body}` от ${`from`}")
 
+macro logWithStyle*(val: ref Style, body: untyped): untyped = 
+  result = newStmtList()
+  # проверяем, что body - список выражений
+  expectKind body, nnkStmtList
+  for elem in body:
+    # Скобки
+    expectKind elem, nnkPar
+    # Длина - 1 элемент
+    expectLen elem, 1
+    # Получаем то, что нам нужно вывести
+    let toWrite = elem[0]
+    # Добавляем выражение к результату
+    result.add quote do:
+      log(`val`, `toWrite`)
+
 proc antiFlood*(): string =
    ## Служит ля обхода анти-флуда Вконтакте (генерирует пять случайных букв)
    const Alphabet = "ABCDEFGHIJKLMNOPQRSTUWXYZ"

@@ -52,12 +52,12 @@ build_script:
   - cd C:\projects\nickelvk
   - nim c -o:vkbot.win64.exe -d:release src\vkbot.nim
 
-deploy:
-  provider: GitHub
-  tag: $(appveyor_build_version)
-  release: Nickel (Windows)$(appveyor_build_version)
-  description: ''
-  auth_token:
-    secure: EFRBY5eEn9IW7LM+b3a2VqZDS1bkkXTpsgj2rpvVEnpnvZdfXOD3CYXeWvAquGrA
-  draft: true
-  artifact: 'C:\projects\nickelvk\src\kbot.win64.exe'
+#deploy:
+#  provider: GitHub
+#  tag: $(appveyor_build_version)
+#  release: Nickel (Windows)$(appveyor_build_version)
+#  description: ''
+#  auth_token:
+#    secure: EFRBY5eEn9IW7LM+b3a2VqZDS1bkkXTpsgj2rpvVEnpnvZdfXOD3CYXeWvAquGrA
+#  draft: true
+#  artifact: 'C:\projects\nickelvk\src\kbot.win64.exe'
