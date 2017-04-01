@@ -41,13 +41,13 @@ proc call*(api: VkApi, msg: Message) {.async.} =
   elif subcommand == "запиши":
     # Если меньше двух аргументов - значит нам не прислали саму инфу
     if unlikely(len(args) < 2):
-      await api.answer(msg, "Что мне нужно запомнить?")
+      await api.answer(msg, "Что нужно записать в блокнот?")
       return
     else:
       # Получаем данные для сохранения и сохраняем их
-      let info = args[0..^1].join(" ")
+      let info = args[1..^1].join(" ")
       # Добавлям данные
       add($msg.pid, "\n\n" & utils.getMoscowTime() & " по МСК" & "\n" & info)
-      await api.answer(msg, "Вроде запомнил!")
+      await api.answer(msg, "Таааак... Всё, записал!")
   else:
     await api.answer(msg, Usage)
