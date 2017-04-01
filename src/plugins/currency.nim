@@ -31,7 +31,9 @@ proc getData(): Future[string] {.async.} =
 
       of "GBP":
         info.add("Английский фунт: ")
-
+      
+      else:
+        discard
     info.add(rubleInfo & " руб.\n")
   data = info
   return info

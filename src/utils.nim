@@ -34,7 +34,7 @@ macro extract*(args: varargs[untyped]): typed =
     i += 1
   #echo result.treerepr
 
-template benchmark*(benchmarkName: string, code: stmt) =
+template benchmark*(benchmarkName: string, code: untyped) =
   let startTime = epochTime()
   code
   let elapsed = epochTime() - startTime
