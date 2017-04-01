@@ -19,9 +19,13 @@ proc call*(api: VkApi, msg: Message) {.async.} =
   if len(failMsg) > 0:
     await api.answer(msg, failMsg)
     return
-  
+  # Проверяем, если хоть один аргумент ниже нуля
+  if intArgs.anyIt(it <= 0):
+    await api.answer(msg, "Одно из чисел меньше нуля!")
+    return
   # Два аргумента - начало и конец диапазона  
   if len(intArgs) == 2:
+
     let (start, `end`) = (intArgs[0], intArgs[1])
     # Если конец диапазона больше начала - всё хорошо
     if likely(abs(`end` - start) > 0):

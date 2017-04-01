@@ -9,12 +9,14 @@ proc getQuality(url: string): Future[float] {.async.} =
   let 
     client = newAsyncHttpClient()
     photoData = await client.getContent(url)
+  # Создаём Multipart Data
   var data = newMultipartData()
   data["data"] = ("test", "image/jpg", photoData)
+  # Отправляем файл на сервер EveryPixel
   let 
     resp = await client.post(Url, multipart=data)
     answer = await resp.body
-  return round(parseJson(answer)["quality"]["score"].getFNum()*100, 1)
+  return round(parseJson(answer)["quality"]["score"].getFNum()*100)
 
 proc call*(api: VkApi, msg: Message) {.async.} = 
 # Нам нужна информация о сообщении для получения URL фотографии.
@@ -58,7 +60,7 @@ proc call*(api: VkApi, msg: Message) {.async.} =
     let res = await getQuality(photoUrl)
     #await api.answer(msg, "Крутость фотки - " & $(res) & " процентов")
     #return
-    answer.add($(ind + 1) & "-я фотка - " & $res & " процентов крутости")
+    answer.add($(ind + 1) & "-я фотка - " & $res & " процентов крутости\n")
   await api.answer(msg, answer)
     
 

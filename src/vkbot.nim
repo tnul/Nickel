@@ -96,7 +96,12 @@ proc processAttaches(attaches: JsonNode): seq[Attachment] =
       if not len(data) > 1:
         continue
       # ID владельца и ID самого аттачмента
-      let (owner_id, atch_id) = (data[0], data[1])
+      var owner_id, atch_id: string
+      try:
+        (owner_id, atch_id) = (data[0], data[1])
+      except IndexError:
+        # С некоторыми видами аттачей это случается
+        continue
       result.add((attachType, owner_id, atch_id))
     
 proc processLpMessage(bot: VkBot, event: seq[JsonNode]) {.async.} =
