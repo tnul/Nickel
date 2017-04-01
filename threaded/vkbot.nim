@@ -5,7 +5,7 @@ import httpclient  # HTTP запросы
 import strutils  # Парсинг строк в числа
 import strtabs  # Для некоторых методов JSON
 import os  # Операции ОС (открытие файла)
-import asyncdispatch  # Асинхронщина
+import threadpool  # Потоки
 import unicode  # операции с юникодными строками
 
 # Модули из Nimble
@@ -43,42 +43,38 @@ proc processCommand(body: string): Command =
   let values = body.split()
   return Command(command: unicode.toLower(values[0]), arguments: values[1..^1])
 
-proc processMessage(bot:VkBot, msg: Message) {.async.} =
+proc processMessage(bot:VkBot, msg: Message)=
   ## Обрабатывает сообщение: обозначает его прочитанным, 
   ## передаёт события плагинам...
-  echo("before cmd case")
   let cmdObj = msg.cmd
   # Смотрим на команду
   case cmdObj.command:
     of "привет":
-      await greeting.call(bot.api, msg)
+      spawn greeting.call(bot.api, msg)
     of "время":
-      await curtime.call(bot.api, msg)
+      spawn curtime.call(bot.api, msg)
     of "тест":
-      await example.call(bot.api, msg)
-    of "пошути":
-      await joke.call(bot.api, msg)
+      spawn example.call(bot.api, msg)
+    #of "пошути":
+    #  spawn joke.call(bot.api, msg)
     of "рандом":
-      await sayrandom.call(bot.api, msg)
+      spawn sayrandom.call(bot.api, msg)
     of "выключись":
-      await shutdown.call(bot.api, msg)
-    of "курс":
-      await currency.call(bot.api, msg)
+      spawn shutdown.call(bot.api, msg)
+    #of "курс":
+    #  spawn currency.call(bot.api, msg)
     of "двач":
-      await dvach.call(bot.api, msg, true)
+      spawn dvach.call(bot.api, msg, true)
     of "мемы":
-      await dvach.call(bot.api, msg)
+      spawn dvach.call(bot.api, msg)
     of "блокнот":
-      await notepad.call(bot.api, msg)
+      spawn notepad.call(bot.api, msg)
     of "шар":
-      await soothsayer.call(bot.api, msg)
+      spawn soothsayer.call(bot.api, msg)
     of "оцени":
-      echo("before everypixel")
-      await everypixel.call(bot.api, msg)
-      echo("after everypixel")
+      spawn everypixel.call(bot.api, msg)
     else:
       discard
-  echo("after case statement")
 
 proc processAttaches(attaches: JsonNode): seq[Attachment] = 
   ## Функция, обрабатывающая приложения  к сообщению
@@ -99,10 +95,9 @@ proc processAttaches(attaches: JsonNode): seq[Attachment] =
       let (owner_id, atch_id) = (data[0], data[1])
       result.add((attachType, owner_id, atch_id))
     
-proc processLpMessage(bot: VkBot, event: seq[JsonNode]) {.async.} =
+proc processLpMessage(bot: VkBot, event: seq[JsonNode]) =
   ## Обрабатывает сырое событие нового сообщения
   # Распаковываем значения из события
-  echo("before convert")
   event.extract(msgId, flags, peerId, ts, subject, text, attaches)
 
   # Конвертируем число в set значений enum'а Flags
@@ -126,19 +121,15 @@ proc processLpMessage(bot: VkBot, event: seq[JsonNode]) {.async.} =
       body: text.str, 
       attaches: processAttaches(attaches)
     )
-  echo("after convert")
   if bot.config.logCommands and cmd.command in Commands:
     message.log(command = true)
   elif bot.config.logMessages:
     message.log(command = false)
   
   # Выполняем обработку сообщения
-  echo("before process message")
-  let processResult = bot.processMessage(message)
-  yield processResult
-  # Если обработка сообщения (или один из плагинов) вызвали ошибку
-  echo("after process message")
-  if unlikely(processResult.failed):
+  try:
+    bot.processMessage(message)
+  except:
     let 
       # Случайные буквы
       rnd = antiFlood() & "\n"
@@ -152,7 +143,7 @@ proc processLpMessage(bot: VkBot, event: seq[JsonNode]) {.async.} =
       # Если нужно писать ошибки в консоль
       log(termcolor.Error, "\n" & getCurrentExceptionMsg())
     # Отправляем сообщение об ошибке
-    await bot.api.answer(message, errorMessage)
+    bot.api.answer(message, errorMessage)
 
 proc newBot(config: BotConfig): VkBot =
   ## Возвращает новый объект VkBot на основе токена
@@ -160,14 +151,14 @@ proc newBot(config: BotConfig): VkBot =
   var lpData = LongPollData()
   return VkBot(api: api, lpData: lpData, config: config)
 
-proc initLongPolling(bot: VkBot, failData: JsonNode = %* {}) {.async.} =
+proc initLongPolling(bot: VkBot, failData: JsonNode = %* {}) =
   ## Инициализирует данные для Long Polling сервера (или обрабатывает ошибку) 
   const MaxRetries = 5  # Максимальнок кол-во попыток для лонг пуллинга
   var data: JsonNode
   # Пытаемся получить значения Long Polling'а (5 попыток)
   for retry in 0..MaxRetries:
     let params = {"use_ssl":"1"}.api
-    data = await bot.api.callMethod("messages.getLongPollServer", params)
+    data = bot.api.callMethod("messages.getLongPollServer", params)
     # Если есть какие-то объекты в data, выходим из цикла
     if likely(data.len() > 0):
       break
@@ -200,17 +191,16 @@ proc initLongPolling(bot: VkBot, failData: JsonNode = %* {}) {.async.} =
   # Обновляем URL Long Polling'а
   bot.getLongPollUrl()
 
-proc mainLoop(bot: VkBot) {.async.} =
+proc mainLoop(bot: VkBot) =
   ## Главный цикл бота (тут происходит получение новых событий)
-  let http = newAsyncHttpClient()
+  let http = newHttpClient()
   while bot.running:
-    echo("before longpoll resp")
-    let resp = http.get(bot.lpUrl)
-    yield resp
-    if resp.failed:
+    var resp: Response
+    try:
+      resp = http.get(bot.lpUrl)
+    except:
       continue
-    let data = await resp.read().body
-    echo("after longpoll resp")
+    let data = resp.body
     let 
       # Парсим ответ сервера в JSON
       jsonData = parseJson(data)
@@ -218,9 +208,8 @@ proc mainLoop(bot: VkBot) {.async.} =
     
     # Если у нас есть поле failed - значит произошла какая-то ошибка
     if unlikely(failed != nil):
-      await bot.initLongPolling(failed)
+      bot.initLongPolling(failed)
       continue
-    echo("after failed processing")
     let events = jsonData["updates"]  
     for event in events:
       let 
@@ -230,9 +219,7 @@ proc mainLoop(bot: VkBot) {.async.} =
       case eventType:
         # Код события 4 - у нас новое сообщение
         of 4:
-          echo("before lp process")
-          await bot.processLpMessage(eventData)
-          echo("after lp process")
+          bot.processLpMessage(eventData)
         else:
           discard
           
@@ -240,11 +227,11 @@ proc mainLoop(bot: VkBot) {.async.} =
     bot.lpData.ts = int(jsonData["ts"].getNum())
     bot.getLongPollUrl()
 
-proc startBot(bot: VkBot) {.async.} = 
+proc startBot(bot: VkBot)= 
   ## Инициализирует Long Polling и запускает главный цикл бота
-  await bot.initLongPolling()
+  bot.initLongPolling()
   bot.running = true
-  await bot.mainLoop()
+  bot.mainLoop()
 
 proc gracefulShutdown() {.noconv.} =
   ## Выключает бота с ожиданием 500мс (срабатывает на Ctrl+C)
@@ -261,5 +248,4 @@ when isMainModule:
   # (close database, end queries etc...)
   setControlCHook(gracefulShutdown)
   log(termcolor.Warning, "Запуск главного цикла бота...")
-  asyncCheck bot.startBot()
-  asyncdispatch.runForever()
+  bot.startBot()

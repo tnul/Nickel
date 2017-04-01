@@ -1,8 +1,4 @@
-import json, httpclient, queues
-
-# Все эти типы и поля доступны в других методах.
-# Экспортируемые типы и поля указываются знаком *
-
+import json, httpclient
 type
   LongPollData* = object
     key*: string  # Ключ сервера 
@@ -49,7 +45,3 @@ type
     lpURL*: string  # URL сервера Long Pooling
     running*: bool  # Работает ли бот
     config*: BotConfig
-
-
-
-
