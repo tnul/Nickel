@@ -46,39 +46,35 @@ proc processCommand(body: string): Command =
 proc processMessage(bot:VkBot, msg: Message) {.async.} =
   ## Обрабатывает сообщение: обозначает его прочитанным, 
   ## передаёт события плагинам...
-  echo("before cmd case")
   let cmdObj = msg.cmd
   # Смотрим на команду
   case cmdObj.command:
     of "привет":
-      await greeting.call(bot.api, msg)
+      asyncCheck greeting.call(bot.api, msg)
     of "время":
-      await curtime.call(bot.api, msg)
+      asyncCheck curtime.call(bot.api, msg)
     of "тест":
-      await example.call(bot.api, msg)
+      asyncCheck example.call(bot.api, msg)
     of "пошути":
-      await joke.call(bot.api, msg)
+      asyncCheck joke.call(bot.api, msg)
     of "рандом":
-      await sayrandom.call(bot.api, msg)
+      asyncCheck sayrandom.call(bot.api, msg)
     of "выключись":
-      await shutdown.call(bot.api, msg)
+      asyncCheck shutdown.call(bot.api, msg)
     of "курс":
-      await currency.call(bot.api, msg)
+      asyncCheck currency.call(bot.api, msg)
     of "двач":
-      await dvach.call(bot.api, msg, true)
+      asyncCheck dvach.call(bot.api, msg, true)
     of "мемы":
-      await dvach.call(bot.api, msg)
+      asyncCheck dvach.call(bot.api, msg)
     of "блокнот":
-      await notepad.call(bot.api, msg)
+      asyncCheck notepad.call(bot.api, msg)
     of "шар":
-      await soothsayer.call(bot.api, msg)
+      asyncCheck soothsayer.call(bot.api, msg)
     of "оцени":
-      echo("before everypixel")
-      await everypixel.call(bot.api, msg)
-      echo("after everypixel")
+      asyncCheck everypixel.call(bot.api, msg)
     else:
       discard
-  echo("after case statement")
 
 proc processAttaches(attaches: JsonNode): seq[Attachment] = 
   ## Функция, обрабатывающая приложения  к сообщению
@@ -102,7 +98,6 @@ proc processAttaches(attaches: JsonNode): seq[Attachment] =
 proc processLpMessage(bot: VkBot, event: seq[JsonNode]) {.async.} =
   ## Обрабатывает сырое событие нового сообщения
   # Распаковываем значения из события
-  echo("before convert")
   event.extract(msgId, flags, peerId, ts, subject, text, attaches)
 
   # Конвертируем число в set значений enum'а Flags
@@ -126,18 +121,15 @@ proc processLpMessage(bot: VkBot, event: seq[JsonNode]) {.async.} =
       body: text.str, 
       attaches: processAttaches(attaches)
     )
-  echo("after convert")
   if bot.config.logCommands and cmd.command in Commands:
     message.log(command = true)
   elif bot.config.logMessages:
     message.log(command = false)
   
   # Выполняем обработку сообщения
-  echo("before process message")
   let processResult = bot.processMessage(message)
   yield processResult
   # Если обработка сообщения (или один из плагинов) вызвали ошибку
-  echo("after process message")
   if unlikely(processResult.failed):
     let 
       # Случайные буквы
@@ -204,13 +196,11 @@ proc mainLoop(bot: VkBot) {.async.} =
   ## Главный цикл бота (тут происходит получение новых событий)
   let http = newAsyncHttpClient()
   while bot.running:
-    echo("before longpoll resp")
     let resp = http.get(bot.lpUrl)
     yield resp
     if resp.failed:
       continue
     let data = await resp.read().body
-    echo("after longpoll resp")
     let 
       # Парсим ответ сервера в JSON
       jsonData = parseJson(data)
@@ -220,7 +210,6 @@ proc mainLoop(bot: VkBot) {.async.} =
     if unlikely(failed != nil):
       await bot.initLongPolling(failed)
       continue
-    echo("after failed processing")
     let events = jsonData["updates"]  
     for event in events:
       let 
@@ -230,9 +219,7 @@ proc mainLoop(bot: VkBot) {.async.} =
       case eventType:
         # Код события 4 - у нас новое сообщение
         of 4:
-          echo("before lp process")
-          await bot.processLpMessage(eventData)
-          echo("after lp process")
+          asyncCheck bot.processLpMessage(eventData)
         else:
           discard
           
@@ -248,7 +235,7 @@ proc startBot(bot: VkBot) {.async.} =
 
 proc gracefulShutdown() {.noconv.} =
   ## Выключает бота с ожиданием 500мс (срабатывает на Ctrl+C)
-  echo("Выключение бота...")
+  log(termcolor.Hint, "Выключение бота...")
   sleep(500)
   quit(0)
 

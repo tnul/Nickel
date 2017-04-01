@@ -6,15 +6,14 @@ const Url = "https://services2.microstock.pro/aesthetics/quality"
 
 
 proc getQuality(url: string): Future[float] {.async.} = 
-  benchmark "Downloading photo from VK":
-    let 
-      client = newAsyncHttpClient()
-      photoData = await client.getContent(url)
+  let 
+    client = newAsyncHttpClient()
+    photoData = await client.getContent(url)
   var data = newMultipartData()
   data["data"] = ("test", "image/jpg", photoData)
-  benchmark "Posting data to Everypixel":
-    let resp = await client.post(Url, multipart=data)
-    let answer = await resp.body
+  let 
+    resp = await client.post(Url, multipart=data)
+    answer = await resp.body
   return round(parseJson(answer)["quality"]["score"].getFNum()*100, 1)
 
 proc call*(api: VkApi, msg: Message) {.async.} = 
@@ -22,10 +21,9 @@ proc call*(api: VkApi, msg: Message) {.async.} =
   for attach in msg.attaches:
     if attach.kind != "photo":
       return
-  benchmark "Getting message info":
-    let 
-      msgData = await api.callMethod("messages.get", {"message_ids": $msg.id}.api)
-      data = msgData["items"][0]
+  let 
+    msgData = await api.callMethod("messages.get", {"message_ids": $msg.id}.api)
+    data = msgData["items"][0]
   if not("attachments" in data):
     await api.answer(msg, "Какие фотки мне оценивать-то?")
     return
@@ -57,13 +55,11 @@ proc call*(api: VkApi, msg: Message) {.async.} =
     #   await api.answer(msg, "Что-то пошло не так :(")
     #   return
     # let qualityData = quality.read()
-    benchmark "Getting quality":
-      let res = await getQuality(photoUrl)
-    benchmark "Answering":
-      await api.answer(msg, "Крутость фотки - " & $(res) & " процентов")
-    return
-    #answer.add($(ind + 1) & "-я фотка - " & $qualityData & " процентов крутости")
-  # await api.answer(msg, answer)
+    let res = await getQuality(photoUrl)
+    #await api.answer(msg, "Крутость фотки - " & $(res) & " процентов")
+    #return
+    answer.add($(ind + 1) & "-я фотка - " & $res & " процентов крутости")
+  await api.answer(msg, answer)
     
 
   
