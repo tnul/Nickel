@@ -36,7 +36,7 @@ proc giveMemes(api: VkApi, msg: Message, groupId: string) {.async.} =
 
 
 proc call*(api: VkApi, msg: Message, dvach: bool = false) {.async.} = 
-  if dvach:
+  if msg.cmd.command == "двач":
     await giveMemes(api, msg, DvachGroupId)
   else:
     await giveMemes(api, msg, MemesGroupId)

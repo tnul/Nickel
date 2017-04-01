@@ -16,7 +16,7 @@ import utils  # Макрос unpack (взят со stackoverflow)
 import types  # Общие типы бота
 import vkapi  # Реализация VK API
 import config # Парсинг файла конфигурации
-
+import errors  # Обработка ошибок
 import termcolor  # Цвета в консоли
 
 # Импорт плагинов
@@ -40,39 +40,43 @@ proc getLongPollUrl(bot: VkBot) =
 
 proc processCommand(body: string): Command =
   ## Обрабатывает строку {body} и возвращает тип Command
+  # Если тело сообщения пустое
+  if len(body) == 0:
+    return
+  # Делим тело сообщения на части
   let values = body.split()
   return Command(command: unicode.toLower(values[0]), arguments: values[1..^1])
 
-proc processMessage(bot:VkBot, msg: Message) {.async.} =
+proc processMessage(bot: VkBot, msg: Message) {.async.} =
   ## Обрабатывает сообщение: обозначает его прочитанным, 
   ## передаёт события плагинам...
   let cmdObj = msg.cmd
   # Смотрим на команду
   case cmdObj.command:
     of "привет":
-      asyncCheck greeting.call(bot.api, msg)
+      runCatch(bot, msg, greeting.call(bot.api, msg))
     of "время":
-      asyncCheck curtime.call(bot.api, msg)
+      runCatch(bot, msg, curtime.call(bot.api, msg))
     of "тест":
-      asyncCheck example.call(bot.api, msg)
+      runCatch(bot, msg, example.call(bot.api, msg))
     of "пошути":
-      asyncCheck joke.call(bot.api, msg)
+      runCatch(bot, msg, joke.call(bot.api, msg))
     of "рандом":
-      asyncCheck sayrandom.call(bot.api, msg)
+      runCatch(bot, msg, sayrandom.call(bot.api, msg))
     of "выключись":
-      asyncCheck shutdown.call(bot.api, msg)
+      runCatch(bot, msg, shutdown.call(bot.api, msg))
     of "курс":
-      asyncCheck currency.call(bot.api, msg)
+      runCatch(bot, msg, currency.call(bot.api, msg))
     of "двач":
-      asyncCheck dvach.call(bot.api, msg, true)
+      runCatch(bot, msg, dvach.call(bot.api, msg, true))
     of "мемы":
-      asyncCheck dvach.call(bot.api, msg)
+      runCatch(bot, msg, dvach.call(bot.api, msg))
     of "блокнот":
-      asyncCheck notepad.call(bot.api, msg)
+      runCatch(bot, msg, notepad.call(bot.api, msg))
     of "шар":
-      asyncCheck soothsayer.call(bot.api, msg)
+      runCatch(bot, msg, soothsayer.call(bot.api, msg))
     of "оцени":
-      asyncCheck everypixel.call(bot.api, msg)
+      runCatch(bot, msg, everypixel.call(bot.api, msg))
     else:
       discard
 
