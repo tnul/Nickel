@@ -30,15 +30,15 @@ proc call*(api: VkApi, msg: Message) {.async.} =
     await api.answer(msg, Usage)
     return
   # Получаем подкоманду
-  let subcommand = args[0]
-  if subcommand == "покажи":
+  case args[0]
+  of "покажи":
     # Отдаём, что у нас сохранено в памяти
     let data = restore($msg.pid)
     if likely(len(data) > 1):
       await api.answer(msg, data)
     else:
       await api.answer(msg, "Я ничего не вспомнил")
-  elif subcommand == "запиши":
+  of "запиши":
     # Если меньше двух аргументов - значит нам не прислали саму инфу
     if unlikely(len(args) < 2):
       await api.answer(msg, "Что нужно записать в блокнот?")

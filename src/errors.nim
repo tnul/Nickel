@@ -1,4 +1,4 @@
-import asyncdispatch, types, utils
+import asyncdispatch, types, utils, macros
 
 proc injectStacktrace*[T](future: Future[T]) =
   # TODO: Come up with something better.
@@ -12,15 +12,15 @@ proc injectStacktrace*[T](future: Future[T]) =
       msg.add("\n    Empty or nil stack trace.")
     future.error.msg.add(msg)
 
-proc runCatch*[T](bot: VkBot, msg: Message, future: Future[T]) =
-  # Устанавлиаваем колбек при завершении асинхронной процедуры
+template runCatch*(exec: proc(api: VkApi, msg: Message): Future[void], bot: VkBot, msg: Message) = 
+  let future = exec(bot.api, msg)
   future.callback =
     # Анонимная функция
     proc () =
       # Если процедура не сфейлилась - всё норм
       if not future.failed:
         return
-      # Получаем стактрейс (injectStacktrace взят из кода компилятора)
+      # Получаем стактрейс (injectStacktrace взят из кода стандартной библиотеку)
       # и вызываем эту ошибку, для того, чтобы её поймать
       try:
         injectStacktrace(future)

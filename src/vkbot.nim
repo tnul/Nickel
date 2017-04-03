@@ -54,29 +54,27 @@ proc processMessage(bot: VkBot, msg: Message) {.async.} =
   # Смотрим на команду
   case cmdObj.command:
     of "привет":
-      runCatch(bot, msg, greeting.call(bot.api, msg))
+      runCatch(greeting.call, bot, msg)
     of "время":
-      runCatch(bot, msg, curtime.call(bot.api, msg))
+      runCatch(curtime.call, bot, msg)
     of "тест":
-      runCatch(bot, msg, example.call(bot.api, msg))
+      runCatch(example.call, bot, msg)
     of "пошути":
-      runCatch(bot, msg, joke.call(bot.api, msg))
+      runCatch(joke.call, bot, msg)
     of "рандом":
-      runCatch(bot, msg, sayrandom.call(bot.api, msg))
+      runCatch(sayrandom.call, bot, msg)
     of "выключись":
-      runCatch(bot, msg, shutdown.call(bot.api, msg))
+      runCatch(shutdown.call, bot, msg)
     of "курс":
-      runCatch(bot, msg, currency.call(bot.api, msg))
-    of "двач":
-      runCatch(bot, msg, dvach.call(bot.api, msg, true))
-    of "мемы":
-      runCatch(bot, msg, dvach.call(bot.api, msg))
+      runCatch(currency.call, bot, msg)
+    of "двач", "мемы":
+      runCatch(dvach.call, bot, msg)
     of "блокнот":
-      runCatch(bot, msg, notepad.call(bot.api, msg))
+      runCatch(notepad.call, bot, msg)
     of "шар":
-      runCatch(bot, msg, soothsayer.call(bot.api, msg))
+      runCatch(soothsayer.call, bot, msg)
     of "оцени":
-      runCatch(bot, msg, everypixel.call(bot.api, msg))
+      runCatch(everypixel.call, bot, msg)
     else:
       discard
 

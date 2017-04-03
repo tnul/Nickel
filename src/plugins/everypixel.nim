@@ -60,7 +60,7 @@ proc call*(api: VkApi, msg: Message) {.async.} =
     let res = await getQuality(photoUrl)
     #await api.answer(msg, "Крутость фотки - " & $(res) & " процентов")
     #return
-    answer.add($(ind + 1) & "-я фотка - " & $res & " процентов крутости\n")
+    answer.add($(ind + 1) & "-я фотка - " & $res & "% крутости\n")
   await api.answer(msg, answer)
     
 
