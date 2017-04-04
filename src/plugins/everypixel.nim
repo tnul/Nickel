@@ -18,7 +18,7 @@ proc getQuality(url: string): Future[float] {.async.} =
     answer = await resp.body
   return round(parseJson(answer)["quality"]["score"].getFNum()*100)
 
-proc call*(api: VkApi, msg: Message) {.async.} = 
+proc everypixel(api: VkApi, msg: Message) {.async.} = 
 # Нам нужна информация о сообщении для получения URL фотографии.
   for attach in msg.attaches:
     if attach.kind != "photo":
@@ -62,6 +62,5 @@ proc call*(api: VkApi, msg: Message) {.async.} =
     #return
     answer.add($(ind + 1) & "-я фотка - " & $res & "% крутости\n")
   await api.answer(msg, answer)
-    
 
-  
+everypixel.handle("оцени", "качество")

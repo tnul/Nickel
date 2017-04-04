@@ -35,8 +35,11 @@ proc giveMemes(api: VkApi, msg: Message, groupId: string) {.async.} =
     await api.answer(msg, random(Answers), attaches = attachment)
 
 
-proc call*(api: VkApi, msg: Message) {.async.} = 
-  if msg.cmd.command == "двач":
-    await giveMemes(api, msg, DvachGroupId)
-  else:
-    await giveMemes(api, msg, MemesGroupId)
+proc dvach(api: VkApi, msg: Message) {.async.} = 
+  await giveMemes(api, msg, DvachGroupId)
+
+proc memes(api: VkApi, msg: Message) {.async.} =
+  await giveMemes(api, msg, MemesGroupId)
+
+dvach.handle("двач", "2ch")
+memes.handle("мемы", "мемчики", "мемасы", "мемасики")

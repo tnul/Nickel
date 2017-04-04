@@ -12,7 +12,7 @@ proc injectStacktrace*[T](future: Future[T]) =
       msg.add("\n    Empty or nil stack trace.")
     future.error.msg.add(msg)
 
-template runCatch*(exec: proc(api: VkApi, msg: Message): Future[void], bot: VkBot, msg: Message) = 
+template runCatch*(exec: PluginFunction, bot: VkBot, msg: Message) = 
   let future = exec(bot.api, msg)
   future.callback =
     # Анонимная функция

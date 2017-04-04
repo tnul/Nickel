@@ -7,6 +7,7 @@ import strtabs  # Для некоторых методов JSON
 import os  # Операции ОС (открытие файла)
 import asyncdispatch  # Асинхронщина
 import unicode  # операции с юникодными строками
+import tables  # для работы с command
 
 # Модули из Nimble
 import strfmt  # используется функция interp
@@ -18,7 +19,7 @@ import vkapi  # Реализация VK API
 import config # Парсинг файла конфигурации
 import errors  # Обработка ошибок
 import termcolor  # Цвета в консоли
-
+import command  # таблица {команда: плагин} и макросы
 # Импорт плагинов
 import plugins/[example, greeting, curtime, joke, 
                 sayrandom, shutdown, currency, dvach, notepad, 
@@ -29,10 +30,11 @@ const Commands = ["привет", "тест", "время", "пошути", "р�
                   "курс","мемы", "двач", "блокнот", "шар", "оцени"]
 
 
+# Переменная для обозначения, работает ли главный цикл бота
 
-
+var running = false
 proc getLongPollUrl(bot: VkBot) =
-  ## Получает URL для Long Polling на основе данных LongPolling бота
+  ## Получает URL для Long Polling на основе данных, полученных ботом
   let 
     data = bot.lpData
     url = interp"https://${data.server}?act=a_check&key=${data.key}&ts=${data.ts}&wait=25&mode=2&version=1"
@@ -45,41 +47,28 @@ proc processCommand(body: string): Command =
     return
   # Делим тело сообщения на части
   let values = body.split()
+  # Возвращаем первое слово из строки в нижнем регистре и аргументы
   return Command(command: unicode.toLower(values[0]), arguments: values[1..^1])
 
 proc processMessage(bot: VkBot, msg: Message) {.async.} =
-  ## Обрабатывает сообщение: обозначает его прочитанным, 
-  ## передаёт события плагинам...
-  let cmdObj = msg.cmd
-  # Смотрим на команду
-  case cmdObj.command:
-    of "привет":
-      runCatch(greeting.call, bot, msg)
-    of "время":
-      runCatch(curtime.call, bot, msg)
-    of "тест":
-      runCatch(example.call, bot, msg)
-    of "пошути":
-      runCatch(joke.call, bot, msg)
-    of "рандом":
-      runCatch(sayrandom.call, bot, msg)
-    of "выключись":
-      runCatch(shutdown.call, bot, msg)
-    of "курс":
-      runCatch(currency.call, bot, msg)
-    of "двач", "мемы":
-      runCatch(dvach.call, bot, msg)
-    of "блокнот":
-      runCatch(notepad.call, bot, msg)
-    of "шар":
-      runCatch(soothsayer.call, bot, msg)
-    of "оцени":
-      runCatch(everypixel.call, bot, msg)
-    else:
-      discard
+  ## Обрабатывает сообщение: логгирует, передаёт события плагинам
+  let cmdText = msg.cmd.command
+  # Если в таблице команд есть эта команда
+  if commands.contains(cmdText):
+    # Если нужно логгировать команды
+    if bot.config.logCommands:
+      msg.log(command = true)
+    # Получаем процедуру плагина, которая обрабатывает эту команду
+    let handler = commands[cmdText]
+    # Выполняем процедуру асинхронно с хэндлером ошибок
+    runCatch(handler, bot, msg)
+  else:
+    # Если это не команда, и нужно логгировать сообщения
+    if bot.config.logMessages:
+      msg.log(command = false)
 
 proc processAttaches(attaches: JsonNode): seq[Attachment] = 
-  ## Функция, обрабатывающая приложения  к сообщению
+  ## Функция, обрабатывающая приложения к сообщению
   result = @[]
   for key, value in pairs(attaches):
     # Если эта пара значений - не указание типа аттача
@@ -128,15 +117,11 @@ proc processLpMessage(bot: VkBot, event: seq[JsonNode]) {.async.} =
       body: text.str, 
       attaches: processAttaches(attaches)
     )
-  if bot.config.logCommands and cmd.command in Commands:
-    message.log(command = true)
-  elif bot.config.logMessages:
-    message.log(command = false)
   
   # Выполняем обработку сообщения
   let processResult = bot.processMessage(message)
   yield processResult
-  # Если обработка сообщения (или один из плагинов) вызвали ошибку
+  # Если обработка сообщения вызвала ошибку
   if unlikely(processResult.failed):
     let 
       # Случайные буквы
@@ -160,8 +145,8 @@ proc newBot(config: BotConfig): VkBot =
   return VkBot(api: api, lpData: lpData, config: config)
 
 proc initLongPolling(bot: VkBot, failData: JsonNode = %* {}) {.async.} =
-  ## Инициализирует данные для Long Polling сервера (или обрабатывает ошибку) 
-  const MaxRetries = 5  # Максимальнок кол-во попыток для лонг пуллинга
+  ## Инициализирует данные или обрабатывает ошибку Long Polling сервера
+  const MaxRetries = 5  # Максимальнок кол-во попыток для запроса лонг пуллинга
   var data: JsonNode
   # Пытаемся получить значения Long Polling'а (5 попыток)
   for retry in 0..MaxRetries:
@@ -201,14 +186,18 @@ proc initLongPolling(bot: VkBot, failData: JsonNode = %* {}) {.async.} =
 
 proc mainLoop(bot: VkBot) {.async.} =
   ## Главный цикл бота (тут происходит получение новых событий)
+  running = true
   let http = newAsyncHttpClient()
-  while bot.running:
+  while running:
+    # Получаем ответ от сервера ВК
     let resp = http.get(bot.lpUrl)
     yield resp
+    # Если не удалось получить, делаем следующий цикл
     if resp.failed:
       continue
-    let data = await resp.read().body
     let 
+      # Читаем тело ответа
+      data = await resp.read().body
       # Парсим ответ сервера в JSON
       jsonData = parseJson(data)
       failed = jsonData.getOrDefault("failed")
@@ -217,8 +206,10 @@ proc mainLoop(bot: VkBot) {.async.} =
     if unlikely(failed != nil):
       await bot.initLongPolling(failed)
       continue
-    let events = jsonData["updates"]  
+
+    let events = jsonData["updates"]
     for event in events:
+      # Делим каждое событие на его тип, и на информацию о нём
       let 
         elems = event.getElems()
         (eventType, eventData) = (elems[0].getNum(), elems[1..^1])
@@ -227,22 +218,24 @@ proc mainLoop(bot: VkBot) {.async.} =
         # Код события 4 - у нас новое сообщение
         of 4:
           asyncCheck bot.processLpMessage(eventData)
+        # Другие события нам пока что не нужны :)
         else:
           discard
           
-    # Нам нужно обновить наш URL с новой меткой времени
+    # Обновляем метку времени
     bot.lpData.ts = int(jsonData["ts"].getNum())
+    # Получаем новый URL для лонг пуллинга
     bot.getLongPollUrl()
 
 proc startBot(bot: VkBot) {.async.} = 
   ## Инициализирует Long Polling и запускает главный цикл бота
   await bot.initLongPolling()
-  bot.running = true
   await bot.mainLoop()
 
 proc gracefulShutdown() {.noconv.} =
   ## Выключает бота с ожиданием 500мс (срабатывает на Ctrl+C)
   log(termcolor.Hint, "Выключение бота...")
+  running = false
   sleep(500)
   quit(0)
 
@@ -250,10 +243,14 @@ when isMainModule:
   let cfg = parseConfig()
   # Выводим значения конфига (кроме токена)
   cfg.log()
+  # Создаём новый объект бота на основе конфигурации
   var bot = newBot(cfg)
-  # Set our hook to Control+C - will be useful in future
-  # (close database, end queries etc...)
+  # Устанавливаем хук на Ctrl+C, пока что бесполезен, но
+  # может пригодиться в будущем (закрывать сессии к БД и т.д)
   setControlCHook(gracefulShutdown)
-  log(termcolor.Warning, "Запуск главного цикла бота...")
+  logWithStyle(termcolor.Success):
+    ("Общее количество команд - " & $len(commands))
+    ("Бот успешно запущен и ожидает команд...")
+    
   asyncCheck bot.startBot()
   asyncdispatch.runForever()

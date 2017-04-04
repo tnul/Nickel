@@ -38,5 +38,7 @@ proc getData(): Future[string] {.async.} =
   data = info
   return info
 
-proc call*(api: VkApi, msg: Message) {.async.}=
+proc currency(api: VkApi, msg: Message) {.async.} =
   await api.answer(msg,  await getData())
+
+currency.handle("курс", "валюта", "валюты", "доллар")
