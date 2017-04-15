@@ -2,8 +2,8 @@ include base
 
 const 
   Answers = ["Каеф", "Не баян (баян)", "Ну держи!"]
-  DvachGroupId = "-22751485"
-  MemesGroupId = "-129950840"
+  DvachGroupId = "-22751485"  # https://vk.com/ru2ch
+  MemesGroupId = "-86441049"  # https://vk.com/hard_ps
 
 proc giveMemes(api: VkApi, msg: Message, groupId: string) {.async.} = 
     ## Получает случайную фотографию из постов группы

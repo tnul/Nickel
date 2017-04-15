@@ -1,16 +1,7 @@
-import future
-import httpclient  # Для HTTP запросов
-import strtabs  # Для быстрых словарей
-import json  # Для парсинга JSON
-import strfmt  # Для использования interp
-import cgi  # Для url кодирования
-import uri  # Для парсинга URL
-import types  # Общие типы бота
-import random  # для анти флуда
-import strutils  # Утилиты для работы со строками
-import asyncdispatch  # Асинхронность
-import utils  # Доп. хелперы
-import termcolor  # Цветные логи
+include baseimports
+import types
+import log
+import utils
 
 const 
   MaxRPS: byte = 3
@@ -32,7 +23,7 @@ proc getQuery*(client: AsyncHttpClient, url: string, params: StringTableRef):
   return await client.get($newUrl)
 
 
-proc newApi*(token: string = ""): VkApi =
+proc newApi*(token = ""): VkApi =
   ## Создаёт новый объект VkAPi и возвращает его
   return VkApi(token: token)
 
@@ -49,8 +40,8 @@ proc apiLimiter(api: VkApi) {.async.} =
   await sleepAsync(SleepTime)
   dec(api.reqCount)
   
-proc callMethod*(api: VkApi, methodName: string, params: StringTableRef = newStringTable(),
-        needAuth: bool = true, flood: bool = false): Future[JsonNode] {.async.} =
+proc callMethod*(api: VkApi, methodName: string, params = newStringTable(),
+        needAuth = true, flood = false): Future[JsonNode] {.async.} =
   ## Отправляет запрос к методу {methodName} с параметрами  {params} типа JsonNode
   ## и допольнительным {token}
   let http = newAsyncHttpClient()
@@ -81,14 +72,13 @@ proc callMethod*(api: VkApi, methodName: string, params: StringTableRef = newStr
           # await api.apiLimiter()
           return await callMethod(api, methodName, params, needAuth, flood = true)
         else:
-          log(termcolor.Error, "Ошибка при вызове " & methodName & "\n" & $data)
+          logError("Ошибка при вызове " & methodName & "\n" & $data)
           # Возвращаем пустой JSON объект
           return  %*{}
     else:
       return data
 
-proc answer*(api: VkApi, msg: Message, body: string, 
-                        attaches: string = "") {.async.} =
+proc answer*(api: VkApi, msg: Message, body: string, attaches = "") {.async.} =
   ## Упрощённая процедура для ответа на сообщение {msg}
   let data = {"message": body, "peer_id": $msg.pid}.api
   # Если есть какие-то приложения, добавляем их в значения для API

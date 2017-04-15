@@ -3,9 +3,7 @@
 # Стандартная библиотека
 import macros, strtabs, times, strutils, future, random
 # Nimble
-import strfmt
-# Сторонние пакеты
-import termcolor
+import strfmt, colorize
 # Свои пакеты
 import types
 
@@ -50,40 +48,6 @@ proc getMoscowTime*(): string =
   ## Возвращает время в формате день.месяц.год часы:минуты:секунды по МСК
   let curTime = getGmTime(getTime()) + initInterval(hours=3)
   return format(curTime, "d'.'M'.'yyyy HH':'mm':'ss")
-
-proc log*(style: ref Style, data: string) =
-  ## Выводит сообщение data со стилем style в консоль с указанием времени 
-  stdout.write("\e[0;32m")  # Синий цвет
-  stdout.write("[" & getClockStr() & "] ")  # Пишем время 
-  colored(style, data)  # Пишем само сообщение
-
-proc log*(msg: Message, command: bool) = 
-  ## Логгирует объект сообщения в консоль
-  let `from` = "https://vk.com/id" & $msg.pid
-  if command:
-    var args = ""
-    if len(msg.cmd.arguments) > 0:
-      args = "с аргументами " & msg.cmd.arguments.join(", ")
-    else:
-      args = "без аргументов"
-    log(termcolor.Success, interp"${`from`} > Команда `${msg.cmd.command}` $args")
-  else:
-    log(termcolor.Hint, interp"Сообщение `${msg.body}` от ${`from`}")
-
-macro logWithStyle*(val: ref Style, body: untyped): untyped = 
-  result = newStmtList()
-  # проверяем, что body - список выражений
-  expectKind body, nnkStmtList
-  for elem in body:
-    # Скобки
-    expectKind elem, nnkPar
-    # Длина - 1 элемент
-    expectLen elem, 1
-    # Получаем то, что нам нужно вывести
-    let toWrite = elem[0]
-    # Добавляем выражение к результату
-    result.add quote do:
-      log(`val`, `toWrite`)
 
 proc antiFlood*(): string =
    ## Служит ля обхода анти-флуда Вконтакте (генерирует пять случайных букв)
