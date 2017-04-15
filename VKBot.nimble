@@ -11,7 +11,7 @@ skipFiles = @["nakefile.nim"]
 
 requires "nim >= 0.16.1"
 requires "strfmt"
-
+requires "colorize"
 when defined(nimdistros):
   import distros
   if detectOs(Ubuntu):
