@@ -17,7 +17,7 @@ before_install:
 - export PATH=$PWD/bin:$PATH
 - cd ..
 script:
-- nimble -y install strfmt
+- nimble install -y
 - nim c -d:release src/vkbot.nim
 deploy:
   skip_cleanup: true
