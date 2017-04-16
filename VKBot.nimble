@@ -1,6 +1,6 @@
 # Package
 
-version       = "0.0.1"
+version       = "0.0.2"
 author        = "Daniil Yarancev"
 description   = "VKBot - command bot for Russian biggest social network - VKontakte"
 license       = "GPLv3"
@@ -12,6 +12,7 @@ skipFiles = @["nakefile.nim"]
 requires "nim >= 0.16.1"
 requires "strfmt"
 requires "colorize"
+
 when defined(nimdistros):
   import distros
   if detectOs(Ubuntu):

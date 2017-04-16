@@ -7,20 +7,18 @@ const
   MaxRPS: byte = 3
   SleepTime = 350
 
-proc getQuery*(client: AsyncHttpClient, url: string, params: StringTableRef):
+proc postData*(client: AsyncHttpClient, url: string, params: StringTableRef):
                                     Future[AsyncResponse] {.async.} =
-  ## Делает GET запрос на {url} с query параметрами {params}
-  var newUrl = parseUri(url)
-  # Если query пустой - добавляем начало - ?
-  if likely(newUrl.query == ""):
-    newUrl.query = "?"
+  ## Делает POST запрос на {url} с параметрами {params}
+  var data = ""
   # Кодируем ключ и значение для URL, и добавляем к query
   for key, val in pairs(params):
-    let enck = cgi.encodeUrl(key)
-    let encv = cgi.encodeUrl(val)
-    newUrl.query.add($enck & "=" & $encv & "&")
+    let 
+      enck = cgi.encodeUrl(key)
+      encv = cgi.encodeUrl(val)
+    data.add($enck & "=" & $encv & "&")
   # Отправляем запрос и возвращаем его ответ
-  return await client.get($newUrl)
+  return await client.post(url, body=data)
 
 
 proc newApi*(token = ""): VkApi =
@@ -57,16 +55,19 @@ proc callMethod*(api: VkApi, methodName: string, params = newStringTable(),
   
   # await api.apiLimiter()
   let 
-    resp = await http.getQuery(url, params)
+    resp = await http.postData(url, params)
     # Парсим ответ от VK API в JSON
     data = parseJson(await resp.body)
-  #  Если есть секция response - нам нужно вернуть ответ из неё
-  if likely("response" in data):
-    return data["response"]
+    response = data.getOrDefault("response") 
+  # Если есть секция response - нам нужно вернуть ответ из неё
+  if likely(response != nil):
+    return response
   # Иначе - проверить на ошибки, и просто вернуть ответ, если всё хорошо
   else:
-    if likely("error" in data):
-      case int(data["error"]["error_code"].getNum()):
+    let error = data.getOrDefault("error")
+    # Если есть какая-то ошибка
+    if likely(error != nil):
+      case int(error["error_code"].getNum()):
         # Flood error - слишком много одинаковых сообщений
         of 9:
           # await api.apiLimiter()

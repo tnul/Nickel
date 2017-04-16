@@ -19,7 +19,7 @@ var running = false
 
 proc getLongPollUrl(bot: VkBot) =
   ## Получает URL для Long Polling на основе данных, полученных ботом
-  const WaitTime = 15
+  const WaitTime = 20
   let 
     data = bot.lpData
     url = interp"https://${data.server}?act=a_check&key=${data.key}&ts=${data.ts}&wait=${WaitTime}&mode=2&version=1"
@@ -131,7 +131,7 @@ proc newBot(config: BotConfig): VkBot =
     lpData = LongPollData()
   return VkBot(api: api, lpData: lpData, config: config)
 
-proc initLongPolling(bot: VkBot, failData: JsonNode = %* {}) {.async.} =
+proc initLongPolling(bot: VkBot, failNum = 0) {.async.} =
   ## Инициализирует данные или обрабатывает ошибку Long Polling сервера
   const MaxRetries = 5  # Максимальнок кол-во попыток для запроса лонг пуллинга
   var data: JsonNode
@@ -143,21 +143,18 @@ proc initLongPolling(bot: VkBot, failData: JsonNode = %* {}) {.async.} =
     if likely(data.len() > 0):
       break
     
-  # Создаём новый объект Long Polling'а
-  bot.lpData = LongPollData()
-  if unlikely(failData.getElems.len == 0):
-    # Нам нужно инициализировать все параметры - первый запуск
-    bot.lpData.server = data["server"].str    
-    bot.lpData.key = data["key"].str
-    bot.lpData.ts = int(data["ts"].getNum())
-    bot.getLongPollUrl()
-    return
   
+
   # Смотрим на код ошибки
-  case int(failData.getNum()):
-    of 1:
-      ## Обновляем метку времени
-      bot.lpData.ts = int(failData["ts"].getNum())
+  case int(failNum)
+    # Первый запуск бота
+    of 0:
+      # Создаём новый объект Long Polling'а
+      bot.lpData = LongPollData()
+      # Нам нужно инициализировать все параметры - первый запуск
+      bot.lpData.server = data["server"].str    
+      bot.lpData.key = data["key"].str
+      bot.lpData.ts = int(data["ts"].getNum())
     of 2:
       ## Обновляем ключ
       bot.lpData.key = data["key"].str
@@ -189,7 +186,11 @@ proc mainLoop(bot: VkBot) {.async.} =
       failed = jsonData.getOrDefault("failed")
     # Если у нас есть поле failed - значит произошла какая-то ошибка
     if unlikely(failed != nil):
-      await bot.initLongPolling(failed)
+      let failNum = int(failed.getNum())
+      if failNum == 1:
+        bot.lpData.ts = int(jsonData["ts"].getNum())
+      else:
+        await bot.initLongPolling(failNum)
       continue
 
     let events = jsonData["updates"]
