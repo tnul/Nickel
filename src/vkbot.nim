@@ -10,8 +10,8 @@ import errors  # Обработка ошибок
 import command  # таблица {команда: плагин} и макросы
 import log  # логгирование
 # Импорт плагинов
-import plugins/[example, greeting, curtime, joke, 
-                sayrandom, shutdown, currency, dvach, notepad, 
+import plugins/[example, greeting, curtime, joke,
+                sayrandom, shutdown, currency, dvach, notepad,
                 soothsayer, everypixel]
 
 # Переменная для обозначения, работает ли главный цикл бота
@@ -20,7 +20,7 @@ var running = false
 proc getLongPollUrl(bot: VkBot) =
   ## Получает URL для Long Polling на основе данных, полученных ботом
   const WaitTime = 20
-  let 
+  let
     data = bot.lpData
     url = interp"https://${data.server}?act=a_check&key=${data.key}&ts=${data.ts}&wait=${WaitTime}&mode=2&version=1"
   bot.lpUrl = url
@@ -52,7 +52,7 @@ proc processMessage(bot: VkBot, msg: Message) {.async.} =
     if bot.config.logMessages:
       msg.log(command = false)
 
-proc processAttaches(attaches: JsonNode): seq[Attachment] = 
+proc processAttaches(attaches: JsonNode): seq[Attachment] =
   ## Функция, обрабатывающая приложения к сообщению
   result = @[]
   for key, value in pairs(attaches):
@@ -76,7 +76,7 @@ proc processAttaches(attaches: JsonNode): seq[Attachment] =
         continue
       # Добавляем аттач к результату
       result.add((attachType, owner_id, atch_id))
-    
+
 proc processLpMessage(bot: VkBot, event: seq[JsonNode]) {.async.} =
   ## Обрабатывает сырое событие нового сообщения
   # Распаковываем значения из события
@@ -87,8 +87,8 @@ proc processLpMessage(bot: VkBot, event: seq[JsonNode]) {.async.} =
   # Если мы же и отправили это сообщение - его обрабатывать не нужно
   if Flags.Outbox in msgFlags:
     return
-  
-  let 
+
+  let
     msgPeerId = int(peerId.getNum())
     # Неожиданно, но ВК посылает Long Polling с <br>'ами вместо \n
     msgBody = text.str.replace("<br>", "\n")
@@ -104,13 +104,13 @@ proc processLpMessage(bot: VkBot, event: seq[JsonNode]) {.async.} =
       body: text.str,  # Тело сообщения
       attaches: processAttaches(attaches)  # Аттачи сообщения
     )
-  
+
   # Выполняем обработку сообщения
   let processResult = bot.processMessage(message)
   yield processResult
   # Если обработка сообщения вызвала ошибку
   if unlikely(processResult.failed):
-    let 
+    let
       # Случайные буквы
       rnd = antiFlood() & "\n"
     # Сообщение, котороые мы пошлём
@@ -126,7 +126,7 @@ proc processLpMessage(bot: VkBot, event: seq[JsonNode]) {.async.} =
 
 proc newBot(config: BotConfig): VkBot =
   ## Возвращает новый объект VkBot на основе токена
-  let 
+  let
     api = newApi(config.token)
     lpData = LongPollData()
   return VkBot(api: api, lpData: lpData, config: config)
@@ -142,8 +142,8 @@ proc initLongPolling(bot: VkBot, failNum = 0) {.async.} =
     # Если есть какие-то объекты в data, выходим из цикла
     if likely(data.len() > 0):
       break
-    
-  
+
+
 
   # Смотрим на код ошибки
   case int(failNum)
@@ -152,7 +152,7 @@ proc initLongPolling(bot: VkBot, failNum = 0) {.async.} =
       # Создаём новый объект Long Polling'а
       bot.lpData = LongPollData()
       # Нам нужно инициализировать все параметры - первый запуск
-      bot.lpData.server = data["server"].str    
+      bot.lpData.server = data["server"].str
       bot.lpData.key = data["key"].str
       bot.lpData.ts = int(data["ts"].getNum())
     of 2:
@@ -174,12 +174,12 @@ proc mainLoop(bot: VkBot) {.async.} =
   let http = newAsyncHttpClient()
   while running:
     # Получаем ответ от сервера ВК
-    let request = http.getContent(bot.lpUrl)
+    let request = http.postContent(bot.lpUrl)
     yield request
     if request.failed:
       await sleepAsync(200)
       continue
-    let 
+    let
       # Парсим ответ сервера в JSON
 
       jsonData = parseJson(request.read())
@@ -196,7 +196,7 @@ proc mainLoop(bot: VkBot) {.async.} =
     let events = jsonData["updates"]
     for event in events:
       # Делим каждое событие на его тип и на информацию о нём
-      let 
+      let
         elems = event.getElems()
         (eventType, eventData) = (elems[0].getNum(), elems[1..^1])
 
@@ -207,13 +207,13 @@ proc mainLoop(bot: VkBot) {.async.} =
         # Другие события нам пока что не нужны :)
         else:
           discard
-          
+
     # Обновляем метку времени
     bot.lpData.ts = int(jsonData["ts"].getNum())
     # Получаем новый URL для лонг пуллинга
     bot.getLongPollUrl()
 
-proc startBot(bot: VkBot) {.async.} = 
+proc startBot(bot: VkBot) {.async.} =
   ## Инициализирует Long Polling и запускает главный цикл бота
   await bot.initLongPolling()
   await bot.mainLoop()
@@ -237,7 +237,7 @@ when isMainModule:
   logWithStyle(Success):
     ("Общее количество команд - " & $len(commands))
     ("Бот успешно запущен и ожидает новых команд!")
-    
+
   asyncCheck bot.startBot()
-  # Запускаем бесконечный асинхронный цикл (пока не будет нажата Ctrl+C) 
+  # Запускаем бесконечный асинхронный цикл (пока не будет нажата Ctrl+C)
   asyncdispatch.runForever()
