@@ -52,31 +52,6 @@ proc processMessage(bot: VkBot, msg: Message) {.async.} =
     if bot.config.logMessages:
       msg.log(command = false)
 
-proc processAttaches(attaches: JsonNode): seq[Attachment] =
-  ## Функция, обрабатывающая приложения к сообщению
-  result = @[]
-  for key, value in pairs(attaches):
-    # Если эта пара значений - не указание типа аттача
-    if not("_type" in key):
-      # Если для такого аттача нет указания типа, пропускаем
-      if not(key & "_type" in attaches):
-        continue
-      # Тип аттача
-      let attachType = attaches[key & "_type"].str
-      # Owner ID и ID самого аттача
-      let data = value.str.split("_")
-      if not len(data) > 1:
-        continue
-      # ID владельца и ID самого аттачмента
-      var owner_id, atch_id: string
-      try:
-        (owner_id, atch_id) = (data[0], data[1])
-      except IndexError:
-        # С некоторыми видами аттачей это случается
-        continue
-      # Добавляем аттач к результату
-      result.add((attachType, owner_id, atch_id))
-
 proc processLpMessage(bot: VkBot, event: seq[JsonNode]) {.async.} =
   ## Обрабатывает сырое событие нового сообщения
   # Распаковываем значения из события
@@ -102,7 +77,6 @@ proc processLpMessage(bot: VkBot, event: seq[JsonNode]) {.async.} =
       subject: subject.str,  # Тема сообщения
       cmd: cmd,  # Объект сообщения
       body: text.str,  # Тело сообщения
-      attaches: processAttaches(attaches)  # Аттачи сообщения
     )
 
   # Выполняем обработку сообщения

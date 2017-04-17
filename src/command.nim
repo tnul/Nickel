@@ -1,6 +1,6 @@
 import macros, tables, types
 
-var commands*: Table[string, PluginFunction] = initTable[string, PluginFunction]()
+var commands* = initTable[string, PluginFunction]()
 
 proc handle*(handler: PluginFunction, cmds: varargs[string]) = 
   ## Процедура для добавления нескольких комманд для данного хендлера

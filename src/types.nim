@@ -9,7 +9,7 @@ type
     server*: string  # URL сервера
     ts*: int64  # Последняя метка времени
   
-  Attachment* = tuple[kind, oid, id: string]
+  Attachment* = tuple[kind, oid, id, token, link: string]
 
   Flags* {.pure.} = enum  # Флаги события нового сообщения Long Polling
     Unread, Outbox, Replied, 
@@ -27,7 +27,7 @@ type
     subject*: string  # Тема 
     cmd*: Command  # Объект команды для данного сообщения
     body*: string
-    attaches*: seq[Attachment]  # Приложения к сообщению
+    doneAttaches*: seq[Attachment]  # Приложения к сообщению
   
   BotConfig* = object
     token*: string

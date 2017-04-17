@@ -79,6 +79,72 @@ proc callMethod*(api: VkApi, methodName: string, params = newStringTable(),
     else:
       return data
 
+proc attaches* (msg: Message, vk: VkApi): Future[seq[Attachment]] {.async.} =
+  ## Получает аттачи сообщения {msg} используя объект API - {vk}
+  var msg = msg
+  result = @[]
+  # Если у сообщения уже есть аттачи
+  if msg.doneAttaches != nil:
+    return msg.doneAttaches
+  let 
+    # ID аттача
+    id = msg.id
+    # Значения для запроса
+    values = {"message_ids": $id, "previev_length": "1"}.api
+    msgData = await vk.callMethod("messages.getById", values)
+  if msgData == %*{}:
+    return
+  let message = msgData["items"][0]
+  # Если нет никаких аттачей
+  if not("attachments" in message):
+    return
+  # Проходимся по всем аттачам
+  for rawAttach in message["attachments"].getElems():
+    let
+      # Тип аттача
+      typ = rawAttach["type"].str
+      # Сам аттач
+      attach = rawAttach[typ]
+    var link = ""
+    # Ищем ссылку на фото
+    var biggestRes = 0
+    for k, v in pairs(attach):
+      if "photo_" in k:
+        # Парсим разрешение фотки
+        let photoRes = parseInt(k[6..^1])
+        # Если оно выше, чем разрешение полученных ранее фоток, используем его
+        if parseInt(k.split("_")[1]) > biggestRes:
+          biggestRes = photoRes
+          link = v.str
+    # Устанавливаем ссылку на документ
+    case typ
+    of "doc":
+      # Ссылка на документ
+      link = attach["url"].str
+    of "video":
+      # Ссылка с плеером видео (не работает от группы)
+      try:
+        link = attach["player"].str
+      except KeyError:
+        discard
+    of "photo":
+      # Проходимся по всем полям аттача
+      for k, v in pairs(attach):
+        if "photo_" in k:
+          # Парсим разрешение фотки
+          let photoRes = parseInt(k[6..^1])
+          # Если оно выше, чем разрешение полученных ранее фоток, используем его
+          if photoRes > biggestRes:
+            biggestRes = photoRes
+            link = v.str
+    let
+      # Получаем access_key аттача
+      key = if "access_key" in attach: attach["access_key"].str else: ""
+      resAttach = (typ, $attach["owner_id"].getNum(), $attach["id"].getNum(), key, link)
+    # Добавляем аттач к результату
+    result.add(resAttach)
+  msg.doneAttaches = result
+
 proc answer*(api: VkApi, msg: Message, body: string, attaches = "") {.async.} =
   ## Упрощённая процедура для ответа на сообщение {msg}
   let data = {"message": body, "peer_id": $msg.pid}.api

@@ -20,47 +20,25 @@ proc getQuality(url: string): Future[float] {.async.} =
 
 proc everypixel(api: VkApi, msg: Message) {.async.} = 
 # Нам нужна информация о сообщении для получения URL фотографии.
-  for attach in msg.attaches:
-    if attach.kind != "photo":
-      return
-  let 
-    msgData = await api.callMethod("messages.get", {"message_ids": $msg.id}.api)
-    data = msgData["items"][0]
-  if not("attachments" in data):
+  let attaches = await msg.attaches(api)
+
+  if len(attaches) < 1:
     await api.answer(msg, "Какие фотки мне оценивать-то?")
     return
   
   var answer: string = ""
-  # Этот плагин может и получать данные для нескольких фотографий, но это медленно,
-  # и бот блокируется
-  for ind, attach in data["attachments"].getElems():
+  for ind, attach in attaches:
     # Если это не фотография
-    if attach["type"].str != "photo":
+    if attach.kind != "photo":
       continue
-    # Получаем URL фотографии с макс. разрешением
-    let photo = attach["photo"]
-    var photoUrl: string
-    # Костыли из-за ВК - нельзя просто так узнать макс. размер фотки
-    try:
-      photoUrl = photo["photo_2560"].str
-    except:
-      try:
-        photoUrl = photo["photo_1280"].str
-      except:
-        try:
-          photoUrl = photo["photo_604"].str
-        except:
-          photoUrl = photo["photo_75"].str
-    # yield quality
-
-    # if quality.failed:
-    #   await api.answer(msg, "Что-то пошло не так :(")
-    #   return
-    # let qualityData = quality.read()
-    let res = await getQuality(photoUrl)
+    
+    let res = await getQuality(attach.link)
     #await api.answer(msg, "Крутость фотки - " & $(res) & " процентов")
     #return
     answer.add($(ind + 1) & "-я фотка - " & $res & "% крутости\n")
-  await api.answer(msg, answer)
+  if answer == "":
+    await api.answer(msg, "Какие фотки мне оценивать-то?")
+  else:
+    await api.answer(msg, answer)
 
 everypixel.handle("оцени", "качество")
