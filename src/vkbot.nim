@@ -12,7 +12,7 @@ import log  # логгирование
 # Импорт плагинов
 import plugins/[example, greeting, curtime, joke,
                 sayrandom, shutdown, currency, dvach, notepad,
-                soothsayer, everypixel]
+                soothsayer, everypixel, calc]
 
 # Переменная для обозначения, работает ли главный цикл бота
 var running = false
