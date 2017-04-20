@@ -1,4 +1,5 @@
 {.compile: "tinyexpr.c"}
+import math
 
 type
   INNER_C_UNION_2023515159* = object {.union.}
@@ -39,30 +40,126 @@ type
     `type`*: cint
     context*: pointer
 
+type
+  OneArg = proc(a: cdouble): cdouble {.cdecl.}
+  TwoArgs = proc(a, b: cdouble): cdouble {.cdecl.}
+  ThreeArgs = proc(a, b, c: cdouble): cdouble {.cdecl.}
+  FourArgs = proc(a, b, c, d: cdouble): cdouble {.cdecl.}
+
+proc genFunc[T](fun: T, name: cstring): te_variable = 
+  ## Returns te_variable based on `fun` proc and name `name`
+  var funcType: cint
+  if fun is OneArg:
+    funcType = TE_FUNCTION1
+  elif fun is TwoArgs:
+    funcType = TE_FUNCTION2
+  elif fun is ThreeArgs:
+    funcType = TE_FUNCTION3
+  elif fun is FourArgs:
+    funcType = TE_FUNCTION4
+
+  result = te_variable(name: name, address: fun, `type`: funcType)
+    
+
+
+proc testsum(a, b: cdouble): cdouble {.cdecl.} = 
+  return a + b
+
+proc testminus(a, b: cdouble): cdouble {.cdecl.} = 
+  return a - b
+
+proc triple(a, b, c: cdouble): cdouble {.cdecl.} = 
+  return a + b + c
+
+#template genData(funcs: openarray[untyped]) = 
+#  var data: array[funcs.len, te_variable] = []
+#  for ind, fun in funcs:
+#    data[ind] = fun.genFunc(fun.astToStr)
+
+const
+  # Make te_variables at compile-time
+  testsumObj = testsum.genFunc("sum")
+  testminusObj = testminus.genFunc("minus")
+  threeArgsObj = triple.genFunc("triple")
+
+var
+  # Array for C-level te_compile
+  data = [testsumObj, testminusObj, threeArgsObj]
 
 ##  Parses the input expression, evaluates it, and frees it.
 ##  Returns NaN on error.
-
 proc te_interp(expression: cstring; error: ptr cint): cdouble {.importc.}
+
 ##  Parses the input expression and binds variables.
 ##  Returns NULL on error.
-
 proc te_compile(expression: cstring; variables: ptr te_variable; var_count: cint;
                 error: ptr cint): ptr te_expr {.importc.}
+
 ##  Evaluates the expression.
-
 proc te_eval(n: ptr te_expr): cdouble {.importc.}
-##  Prints debugging information on the syntax tree.
 
+##  Prints debugging information on the syntax tree.
 proc te_print(n: ptr te_expr) {.importc.}
+
 ##  Frees the expression.
 ##  This is safe to call on NULL pointers.
-
 proc te_free(n: ptr te_expr) {.importc.}
 
+proc isNaN*(s: float): bool =
+  ## Returns true if float is nan
+  if unlikely(s.classify == fcNan):
+    return true
+  else:
+    return false
 
-proc teInterp*(s: string): float = 
+proc teInterp*(s: string): float64 = 
+  ## Parses math expression and returns float
+  ## Returns "nan" on error
   var error: cint
-  result = te_interp(s, error.addr)
-  # if error != 0:
+  return te_eval(te_compile(s, addr(data[0]), cint(data.len), addr(error)))
+  #if error != 0:
   #  raise newException(SystemError, "tinyexpr error code " & $error)
+
+proc teAnswer*(s: string): string = 
+  ## Wrapper around teInterp - returns string
+  ## For "2.0"-like results results returns integer
+  ## For NaN returns empty string
+  let answer = round(teInterp(s), 10)
+  # If float equals to floored float, it means, that we can omit ".0"
+  if unlikely(answer.isNaN):
+    result = ""
+  elif ($answer)[^2..^1] == ".0":
+    result = $int(answer)
+  else:
+    result = $answer
+
+when isMainModule:
+  # Set our Ctrl+C hook
+  proc shutdown() {.noconv.} = 
+    echo("\nGoodbye!")
+    quit(0)
+
+  setControlCHook(shutdown)
+  # Endless loop
+  while true:
+    stdout.write("> ")
+    let 
+      # Get the expression
+      expr = readLine(stdin)
+      # Evaluate it
+      result = teInterp(expr)
+    # If user wants to exit
+    if expr == "exit":
+      quit(0)
+    # If error happened
+    if result.isNan:
+      echo("Error parsing expression!")
+      continue
+    var answer: string = ""
+    if result == floor(result):
+      answer = $int(result)
+    else:
+      answer = $result
+    # 1 + 1 = 2.0
+    echo(expr & " = " & answer)
+    
