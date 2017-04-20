@@ -1,7 +1,11 @@
 include base
 
-proc test(api: VkApi, msg: Message) {.async.} =
+# Плагин объявляется через command "команды", "через", "запятую": код
+# Внутри command доступны объекты msg: Message (объект сообщеня),
+# и объект api: VkApi (объект для работы с VK API)
+command "тест", "проверка":
+  # Получаем строку со всеми аргументами 
   let argsStr = msg.cmd.arguments.join(", ")
+  # Отвечаем пользователю. await обязателен, так как бот асинхронный
+  # и answer - асинхронная процедура
   await api.answer(msg, "Это тестовая команда. Аргументы - " & argsStr)
-
-test.handle("тест", "проверка")

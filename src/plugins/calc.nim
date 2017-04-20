@@ -1,20 +1,18 @@
 # Использует C библиотеку tinyexpr для обработки 
 # мат. выражений - https://github.com/codeplea/tinyexpr/
 include base
-import tinyexpr/tinyexpr  # Парсер мат. выражений (на Си)
+import tinyexpr/tinyexpr
 
 const 
-  FailMsg = "Я не смог это посчитать :( Может ты отправил мне что-то не то?"
+  FailMsg = "Я не смог это сосчитать :(?"
 
-proc call(api: VkApi, msg: Message) {.async.} =
+command "калькулятор", "посчитай", "calc", "посчитать":
   let 
-    expression = msg.cmd.arguments.join(" ")  # Получаем строку-выражение
-    result = teAnswer(expression)  # Получаем результат
+    expression = msg.cmd.arguments.join(" ")  # Получаем строку - выражение
+    answer = teAnswer(expression)  # Получаем результат
   # Если произошла ошибка при вычислении
-  if unlikely(result == ""):
+  if unlikely(answer == ""):
     await api.answer(msg, FailMsg)
   else:
-    # Возвращаем результат
-    await api.answer(msg, expression & " = " & result)
-
-call.handle("калькулятор", "посчитай", "calc", "посчитать")
+    # Отправляем результат выражения
+    await api.answer(msg, expression & " = " & answer)

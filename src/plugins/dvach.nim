@@ -17,29 +17,26 @@ proc giveMemes(api: VkApi, msg: Message, groupId: string) {.async.} =
     # Пока мы не нашли фотографию
     while photo == nil:
         # Отправляем API запрос
-        let data = await api.callMethod("wall.get", values, needAuth = false)
-        let attaches = data["items"][0].getOrDefault("attachments")
+        let 
+          data = await api.callMethod("wall.get", values, needAuth = false)
+          attaches = data["items"][0].getOrDefault("attachments")
         # Если к посту прикреплены записи
         if attaches != nil:
             photo = attaches[0].getOrDefault("photo")
         # Берём другой случайный оффсет
         values["offset"] = $(random(1984)+1)
-    # ID владельца фото
-    let oid = $photo["owner_id"].getNum()
-    # ID самого приложения
-    let attachId = $photo["id"].getNum()
-    # Access key может понадобиться, если группа закрытая 
-    let accessKey = photo["access_key"].str
-
-    let attachment = interp"photo${oid}_${attachId}_${accessKey}"
+    let 
+      # ID владельца фото
+      oid = $photo["owner_id"].getNum()
+      # ID самого приложения
+      attachId = $photo["id"].getNum()
+      # Access key может понадобиться, если группа закрытая 
+      accessKey = photo["access_key"].str
+      attachment = interp"photo${oid}_${attachId}_${accessKey}"
     await api.answer(msg, random(Answers), attaches = attachment)
 
-
-proc dvach(api: VkApi, msg: Message) {.async.} = 
+command "двач", "2ch":
   await giveMemes(api, msg, DvachGroupId)
 
-proc memes(api: VkApi, msg: Message) {.async.} =
+command "мемы", "мемчики", "мемасы", "мемасики":
   await giveMemes(api, msg, MemesGroupId)
-
-dvach.handle("двач", "2ch")
-memes.handle("мемы", "мемчики", "мемасы", "мемасики")

@@ -23,7 +23,7 @@ proc add(peerId: string, data: string) =
     savedData[peerId] = data
 
 
-proc notepad(api: VkApi, msg: Message) {.async.} = 
+command "блокнот", "блокнотик", "дневник":
   let args = msg.cmd.arguments
   # Если у нас нет аргументов
   if unlikely(len(args) < 1):
@@ -51,5 +51,3 @@ proc notepad(api: VkApi, msg: Message) {.async.} =
       await api.answer(msg, "Таааак... Всё, записал!")
   else:
     await api.answer(msg, Usage)
-  
-notepad.handle("блокнот", "блокнотик", "дневник")

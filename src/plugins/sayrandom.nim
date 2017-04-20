@@ -1,7 +1,7 @@
 include base
 import sequtils
 
-proc rnd(api: VkApi, msg: Message) {.async.} =
+command "рандом", "кубик":
   let args = msg.cmd.arguments
 
   var 
@@ -44,5 +44,3 @@ proc rnd(api: VkApi, msg: Message) {.async.} =
     rndNumber = random(5) + 1
   
   await api.answer(msg, "Моё число - " & $rndNumber)
-    
-rnd.handle("рандом", "ранд")

@@ -36,11 +36,9 @@ proc getJoke(): Future[string] {.async.} =
     if likely(len(result) > 0):
       break
 
-proc joke(api: VkApi, msg: Message) {.async.}=
-  let joke: string = await getJoke()
-  if likely(len(joke) > 1):
+command "пошути", "шуткани", "анекдот", "баш", "петросян":
+  let joke = await getJoke()
+  if likely(joke != ""):
     await api.answer(msg, random(Answers) & "\n\n" & joke)
   else:
     await api.answer(msg, "Извини, но у меня шутилка сломалась :(")
-
-joke.handle("пошути", "шуткани", "анекдот", "баш", "петросян")

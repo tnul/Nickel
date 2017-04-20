@@ -12,7 +12,5 @@ const
   ]
 
 
-proc info(api: VkApi, msg: Message) {.async.} = 
+command "шар", "инфа", "правда", "вероятность":
   await api.answer(msg, "🎱 " & random(Answers))
-
-info.handle("шар", "инфа", "правда")

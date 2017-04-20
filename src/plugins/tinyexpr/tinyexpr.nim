@@ -122,12 +122,13 @@ proc teInterp*(s: string): float64 =
 
 proc teAnswer*(s: string): string = 
   ## Wrapper around teInterp - returns string
-  ## For "2.0"-like results results returns integer
+  ## For "2.0" like results returns integer like "2"
   ## For NaN returns empty string
   let answer = round(teInterp(s), 10)
-  # If float equals to floored float, it means, that we can omit ".0"
+  
   if unlikely(answer.isNaN):
     result = ""
+  # If float ends with ".0", we can omit ".0"
   elif ($answer)[^2..^1] == ".0":
     result = $int(answer)
   else:

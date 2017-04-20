@@ -5,8 +5,5 @@ const Greetings = ["Запущен и готов служить!",
                    "Писать ботов не так-то просто, как кажется!",
                    "Привет, странствующий путник!"]
 
-proc greet(api: VkApi, msg: Message) {.async.} =
-  let answer = random(Greetings)
+command "привет", "ку", "прив", "хей", "хэй", "qq":
   await api.answer(msg,  random(Greetings))
-
-greet.handle("привет", "ку", "прив", "хей", "хэй", "qq")

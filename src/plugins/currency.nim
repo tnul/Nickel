@@ -3,8 +3,6 @@ import httpclient, encodings, math, times
 
 const Url = "http://api.fixer.io/latest?base="
 
-
-
 var data: string = ""
 var lastTime: float = epochTime()
 
@@ -38,7 +36,5 @@ proc getData(): Future[string] {.async.} =
   data = info
   return info
 
-proc currency(api: VkApi, msg: Message) {.async.} =
+command "курс", "валюта", "валюты", "доллар":
   await api.answer(msg,  await getData())
-
-currency.handle("курс", "валюта", "валюты", "доллар")
