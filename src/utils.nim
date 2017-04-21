@@ -71,5 +71,3 @@ proc antiFlood*(): string =
    ## Служит ля обхода анти-флуда Вконтакте (генерирует пять случайных букв)
    const Alphabet = "ABCDEFGHIJKLMNOPQRSTUWXYZ"
    return lc[random(Alphabet) | (x <- 0..4), char].join("")
-
-importPlugins()
