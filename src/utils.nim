@@ -42,22 +42,29 @@ template benchmark*(benchmarkName: string, code: untyped) =
 const IgnoreFilenames = ["base.nim"]
 macro importPlugins*(): untyped =
   result = newStmtList()
-  let data = toSeq(walkDir("src/modules"))
-  var folder = "src/modules"
+  var 
+    data: seq[tuple[kind: PathComponent, path: string]]
+    folder = "src/modules"
+  when defined(windows) and not defined(crosswin):
+    folder = r"src\modules"
+    data = toSeq(walkDir(r"src\modules"))
+  else:
+    data = toSeq(walkDir("src/modules"))
   if data.len < 1:
     folder = "modules"
   for kind, path in walkDir(folder):
     if kind != pcFile:
       continue
-    
-    let filename = path.rsplit("/", maxsplit=1)[1]
+    let 
+      separator = when defined(windows) and not defined(crosswin): r"\" else: "/"
+      filename = path.rsplit(separator, maxsplit=1)[1]
     if filename in IgnoreFilenames:
       continue
     let toImport = filename.split(".")[0]
     result.add(parseExpr("import " & folder & "/" & toImport))
   
 
-proc api*(keyValuePairs: varargs[tuple[key, val: string]]): StringTableRef = 
+proc api*(keyValuePairs: varargs[tuple[key, val: string]]): StringTableRef {.inline.} = 
   ## Возвращает новую строковую таблицу, может использоваться
   ## вот так: var info = {"message":"Hello", "peer_id": "123"}.api
   return newStringTable(keyValuePairs, modeCaseInsensitive)
@@ -67,7 +74,7 @@ proc getMoscowTime*(): string =
   let curTime = getGmTime(getTime()) + initInterval(hours=3)
   return format(curTime, "d'.'M'.'yyyy HH':'mm':'ss")
 
-proc antiFlood*(): string =
+proc antiFlood*(): string {.inline.} =
    ## Служит ля обхода анти-флуда Вконтакте (генерирует пять случайных букв)
    const Alphabet = "ABCDEFGHIJKLMNOPQRSTUWXYZ"
    return lc[random(Alphabet) | (x <- 0..4), char].join("")

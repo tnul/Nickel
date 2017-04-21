@@ -4,7 +4,7 @@ include base
 import tinyexpr/tinyexpr
 
 const 
-  FailMsg = "Я не смог это сосчитать :(?"
+  FailMsg = "Я не смог это сосчитать :("
 
 command "калькулятор", "посчитай", "calc", "посчитать":
   let 
