@@ -105,20 +105,21 @@ proc newBot(config: BotConfig): VkBot =
     lpData = LongPollData()
   return VkBot(api: api, lpData: lpData, config: config)
 
-proc initLongPolling(bot: VkBot, failNum = 0) {.async.} =
-  ## Инициализирует данные или обрабатывает ошибку Long Polling сервера
+
+proc getRawLPData(api: VkApi): Future[JsonNode] {.async.} = 
   const MaxRetries = 5  # Максимальнок кол-во попыток для запроса лонг пуллинга
-  var data: JsonNode
+  let params = {"use_ssl":"1"}.api
   # Пытаемся получить значения Long Polling'а (5 попыток)
   for retry in 0..MaxRetries:
-    let params = {"use_ssl":"1"}.api
-    data = await bot.api.callMethod("messages.getLongPollServer", params)
+    result = await api.callMethod("messages.getLongPollServer", params)
     # Если есть какие-то объекты в data, выходим из цикла
-    if likely(data.len() > 0):
+    if likely(result.len() > 0):
       break
 
 
-
+proc initLongPolling(bot: VkBot, failNum = 0) {.async.} =
+  ## Инициализирует данные или обрабатывает ошибку Long Polling сервера
+  let data = await bot.api.getRawLPData()
   # Смотрим на код ошибки
   case int(failNum)
     # Первый запуск бота

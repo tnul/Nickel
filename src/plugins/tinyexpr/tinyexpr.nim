@@ -60,7 +60,7 @@ proc genFunc[T](fun: T, name: cstring): te_variable =
 
   result = te_variable(name: name, address: fun, `type`: funcType)
     
-
+  
 
 proc testsum(a, b: cdouble): cdouble {.cdecl.} = 
   return a + b
@@ -70,11 +70,6 @@ proc testminus(a, b: cdouble): cdouble {.cdecl.} =
 
 proc triple(a, b, c: cdouble): cdouble {.cdecl.} = 
   return a + b + c
-
-#template genData(funcs: openarray[untyped]) = 
-#  var data: array[funcs.len, te_variable] = []
-#  for ind, fun in funcs:
-#    data[ind] = fun.genFunc(fun.astToStr)
 
 const
   # Make te_variables at compile-time
@@ -161,6 +156,6 @@ when isMainModule:
       answer = $int(result)
     else:
       answer = $result
-    # 1 + 1 = 2.0
+    # 1 + 1 = 2
     echo(expr & " = " & answer)
     
