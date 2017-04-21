@@ -32,7 +32,7 @@ command "блокнот", "блокнотик", "дневник":
   # Получаем подкоманду
   case args[0]
   of "покажи":
-    # Отдаём, что у нас сохранено в памяти
+    # Отдаём то, что у нас сохранено в памяти
     let data = restore($msg.pid)
     if likely(len(data) > 1):
       await api.answer(msg, data)

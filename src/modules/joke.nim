@@ -38,6 +38,7 @@ proc getJoke(): Future[string] {.async.} =
 
 command "пошути", "шуткани", "анекдот", "баш", "петросян":
   let joke = await getJoke()
+  # Если удалось получить анекдот
   if likely(joke != ""):
     await api.answer(msg, random(Answers) & "\n\n" & joke)
   else:

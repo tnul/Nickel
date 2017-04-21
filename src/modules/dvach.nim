@@ -7,20 +7,20 @@ const
 
 proc giveMemes(api: VkApi, msg: Message, groupId: string) {.async.} = 
     ## Получает случайную фотографию из постов группы
-    var photo: JsonNode = nil
-
-
-    var values = {"owner_id": groupId, 
-                  "offset": $(random(1984) + 1), 
-                  "count": "1"}.api 
+    var 
+      photo: JsonNode = nil
+      values = {"owner_id": groupId,  # ID группы
+                "offset": $(random(1984) + 1),  # оффсет
+                "count": "1"  # кол-во записей 
+                }.api 
       
     # Пока мы не нашли фотографию
     while photo == nil:
-        # Отправляем API запрос
         let 
+          # Отправляем API запрос
           data = await api.callMethod("wall.get", values, needAuth = false)
           attaches = data["items"][0].getOrDefault("attachments")
-        # Если к посту прикреплены записи
+        # Если у поста есть аттачи
         if attaches != nil:
             photo = attaches[0].getOrDefault("photo")
         # Берём другой случайный оффсет

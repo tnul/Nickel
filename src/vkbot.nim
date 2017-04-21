@@ -9,10 +9,7 @@ import config # Парсинг файла конфигурации
 import errors  # Обработка ошибок
 import command  # таблица {команда: плагин} и макросы
 import log  # логгирование
-# Импорт плагинов
-import plugins/[example, greeting, curtime, joke,
-                sayrandom, shutdown, currency, dvach, notepad,
-                soothsayer, everypixel, calc]
+importPlugins()  # импортируем все модули из папки 
 
 # Переменная для обозначения, работает ли главный цикл бота
 var running = false

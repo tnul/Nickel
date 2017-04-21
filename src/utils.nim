@@ -1,7 +1,7 @@
 # Файл с различными хелперами
 
 # Стандартная библиотека
-import macros, strtabs, times, strutils, future, random
+import macros, strtabs, times, strutils, future, random, os, sequtils
 # Nimble
 import strfmt, colorize
 # Свои пакеты
@@ -39,6 +39,24 @@ template benchmark*(benchmarkName: string, code: untyped) =
   let elapsedStr = elapsed.formatFloat(format = ffDecimal, precision = 3)
   echo "Затрачено ", elapsedStr, " секунд на [", benchmarkName, "]"
 
+const IgnoreFilenames = ["base.nim"]
+macro importPlugins*(): untyped =
+  result = newStmtList()
+  let data = toSeq(walkDir("src/modules"))
+  var folder = "src/modules"
+  if data.len < 1:
+    folder = "modules"
+  for kind, path in walkDir(folder):
+    if kind != pcFile:
+      continue
+    
+    let filename = path.rsplit("/", maxsplit=1)[1]
+    if filename in IgnoreFilenames:
+      continue
+    let toImport = filename.split(".")[0]
+    result.add(parseExpr("import " & folder & "/" & toImport))
+  
+
 proc api*(keyValuePairs: varargs[tuple[key, val: string]]): StringTableRef = 
   ## Возвращает новую строковую таблицу, может использоваться
   ## вот так: var info = {"message":"Hello", "peer_id": "123"}.api
@@ -53,3 +71,5 @@ proc antiFlood*(): string =
    ## Служит ля обхода анти-флуда Вконтакте (генерирует пять случайных букв)
    const Alphabet = "ABCDEFGHIJKLMNOPQRSTUWXYZ"
    return lc[random(Alphabet) | (x <- 0..4), char].join("")
+
+importPlugins()
