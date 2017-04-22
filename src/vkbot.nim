@@ -30,11 +30,11 @@ proc processCommand(body: string): Command =
   # Делим тело сообщения на части
   let values = body.split()
   # Возвращаем первое слово из строки в нижнем регистре и аргументы
-  return Command(command: unicode.toLower(values[0]), arguments: values[1..^1])
+  return Command(name: unicode.toLower(values[0]), args: values[1..^1])
 
 proc processMessage(bot: VkBot, msg: Message) {.async.} =
   ## Обрабатывает сообщение: логгирует, передаёт события плагинам
-  let cmdText = msg.cmd.command
+  let cmdText = msg.cmd.name
   # Если в таблице команд есть эта команда
   if commands.contains(cmdText):
     # Если нужно логгировать команды

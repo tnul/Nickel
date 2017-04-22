@@ -2,7 +2,7 @@ include base
 import sequtils
 
 command "рандом", "кубик":
-  let args = msg.cmd.arguments
+  let args = msg.cmd.args
 
   var 
     intArgs: seq[int] = @[]

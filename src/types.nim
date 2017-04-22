@@ -17,8 +17,8 @@ type
     Spam, Deleted, Fixed, Media
   
   Command* = object
-    command*: string  # Сама команда в виде строки
-    arguments*: seq[string]  # Последовательность аргументов
+    name*: string  # Сама команда
+    args*: seq[string]  # Последовательность аргументов
 
   Message* = object
     id*: int  # ID сообщения
@@ -49,8 +49,10 @@ type
     lpURL*: string  # URL сервера Long Pooling
     config*: BotConfig
 
-  PluginFunction* = proc(api: VkApi, msg: Message): Future[void] 
+  ModuleFunction* = proc(api: VkApi, msg: Message): Future[void]
 
-
+  Module* = object
+    name*: string
+    usage*: string
 
 

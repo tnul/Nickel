@@ -1,6 +1,6 @@
 include baseimports
 import utils, vkapi
-proc runCatch*(exec: PluginFunction, bot: VkBot, msg: Message) = 
+proc runCatch*(exec: ModuleFunction, bot: VkBot, msg: Message) = 
   let future = exec(bot.api, msg)
   future.callback =
     # Анонимная функция

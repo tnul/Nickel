@@ -8,7 +8,7 @@ const
 
 command "калькулятор", "посчитай", "calc", "посчитать":
   let 
-    expression = msg.cmd.arguments.join(" ")  # Получаем строку - выражение
+    expression = msg.cmd.args.join(" ")  # Получаем строку - выражение
     answer = teAnswer(expression)  # Получаем результат
   # Если произошла ошибка при вычислении
   if unlikely(answer == ""):
