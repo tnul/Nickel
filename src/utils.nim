@@ -1,7 +1,7 @@
 # Файл с различными хелперами
 
 # Стандартная библиотека
-import macros, strtabs, times, strutils, future, random, os, sequtils
+import macros, strtabs, times, strutils, random, os, sequtils
 # Nimble
 import strfmt, colorize
 # Свои пакеты
@@ -31,13 +31,6 @@ macro extract*(args: varargs[untyped]): typed =
       result.add(assign)
     i += 1
   #echo result.treerepr
-
-template benchmark*(benchmarkName: string, code: untyped) =
-  let startTime = epochTime()
-  code
-  let elapsed = epochTime() - startTime
-  let elapsedStr = elapsed.formatFloat(format = ffDecimal, precision = 3)
-  echo "Затрачено ", elapsedStr, " секунд на [", benchmarkName, "]"
 
 const IgnoreFilenames = ["base.nim"]
 macro importPlugins*(): untyped =
@@ -77,4 +70,6 @@ proc getMoscowTime*(): string =
 proc antiFlood*(): string {.inline.} =
    ## Служит ля обхода анти-флуда Вконтакте (генерирует пять случайных букв)
    const Alphabet = "ABCDEFGHIJKLMNOPQRSTUWXYZ"
-   return lc[random(Alphabet) | (x <- 0..4), char].join("")
+   var data = ""
+   for x in 0..4:
+     data.add(random(Alphabet))

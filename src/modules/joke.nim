@@ -36,7 +36,7 @@ proc getJoke(): Future[string] {.async.} =
     if likely(len(result) > 0):
       break
 
-module "Анекдоты":
+module "&#128175; Анекдоты":
   command "пошути", "шуткани", "анекдот", "баш", "петросян":
     usage = "пошути - вывести случайную цитату c bash.im"
     let joke = await getJoke()

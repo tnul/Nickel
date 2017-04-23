@@ -22,8 +22,10 @@ proc add(peerId: string, data: string) =
     # Создаём новую запись
     savedData[peerId] = data
 
-module "Блокнот":
+module "&#128221; Блокнот":
   command "блокнот", "блокнотик", "дневник":
+    usage = ["блокнот запиши <выражение> - записать выражение в блокнот", 
+             "блокнот покажи - показать записанные выражения"]
     let args = msg.cmd.args
     # Если у нас нет аргументов
     if unlikely(len(args) < 1):

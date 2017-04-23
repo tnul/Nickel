@@ -2,7 +2,6 @@ include baseimports
 import times
 import macros
 
-
 template log*(data: string) =
   ## Выводит сообщение data со стилем style в консоль с указанием времени 
   stdout.write("\e[0;32m")  # Синий цвет

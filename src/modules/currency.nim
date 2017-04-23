@@ -20,7 +20,7 @@ proc getData(): Future[string] {.async.} =
       rawData = await client.getContent(Url & curr)
       data = parseJson(rawData)["rates"]
       # Округляем float до 2 знаков после запятой
-      rubleInfo = $round(data["RUB"].getFNum(), 2)
+      rubleInfo = $round(float(data["RUB"].getFNum()), 2)
     
     case curr:
       of "USD":
@@ -35,5 +35,7 @@ proc getData(): Future[string] {.async.} =
   data = info
   return info
 
-command "курс", "валюта", "валюты", "доллар":
-  await api.answer(msg,  await getData())
+module "&#128177; Курсы валют":
+  command "курс", "валюта", "валюты", "доллар":
+    usage = "курс - вывести курсы доллара, евро, фунта к рублю"
+    await api.answer(msg,  await getData())
