@@ -11,18 +11,17 @@ macro command*(cmds: varargs[string], body: untyped): untyped =
     uniqName = newIdentNode("handler"& $count)
   var 
     usage = ""
+    moduleUsages: seq[string] = @[]
     procBody = newStmtList()
   
-  # If we have `usage = "somestring" `
+  # If we have `usage = something`
   if body[0].kind == nnkAsgn:
     let text = body[0][1]
     
     # If it's an array like ["a", "b"]
     if text.kind == nnkBracket:
       for i in 0..<len(text):
-        usage &= text[i].strVal & "\n"
-      # Remove \n at the end
-      usage = usage[0..^2]
+        moduleUsages.add(text[i].strVal)
     # If it's a string or a triple-quoted string
     elif text.kind == nnkStrLit or text.kind == nnkTripleStrLit:
       procBody = newStmtList()
@@ -31,9 +30,14 @@ macro command*(cmds: varargs[string], body: untyped): untyped =
     # Add actual handler code except line with usage
     for i in 1..<body.len:
       procBody.add body[i]
-  # Only if usage is not an empty string
+  # Add to global usages only if usage is not an empty string
   if len(usage) > 0:
     usages.add(usage)
+  # If there's some strings in moduleUsages
+  if moduleUsages != @[]:
+    for x in moduleUsages:
+      # Add to global usages
+      if x != "": usages.add(x)
   # Increment counter for unique procedure names
   inc count
 
