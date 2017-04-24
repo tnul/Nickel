@@ -17,13 +17,10 @@ var running = false
 proc getLongPollUrl(bot: VkBot) =
   ## Получает URL для Long Polling на основе данных, полученных ботом
   const 
-    WaitTime = "20"
-    UrlFormat = "https://$1?act=a_check&key=$2&ts=$3&wait=$4&mode=2&version=1"
+    UrlFormat = "https://$1?act=a_check&key=$2&ts=$3&wait=20&mode=2&version=1"
   let
     data = bot.lpData
-    #url = "https://${data.server}?act=a_check&key=${data.key}&ts=${data.ts}&wait=${WaitTime}&mode=2&version=1"
-    url = UrlFormat % [data.server, data.key, $data.ts, WaitTime]
-  bot.lpUrl = url
+  bot.lpUrl = UrlFormat % [data.server, data.key, $data.ts]
 
 proc processCommand(body: string): Command =
   ## Обрабатывает строку {body} и возвращает тип Command
@@ -58,7 +55,7 @@ proc processLpMessage(bot: VkBot, event: seq[JsonNode]) {.async.} =
   event.extract(msgId, flags, peerId, ts, subject, text, attaches)
 
   # Конвертируем число в set значений enum'а Flags
-  let msgFlags: set[Flags] = cast[set[Flags]](int(flags.getNum()))
+  let msgFlags = cast[set[Flags]](int(flags.getNum()))
   # Если мы же и отправили это сообщение - его обрабатывать не нужно
   if Flags.Outbox in msgFlags:
     return
@@ -97,7 +94,6 @@ proc processLpMessage(bot: VkBot, event: seq[JsonNode]) {.async.} =
       logError("\n" & getCurrentExceptionMsg())
     # Отправляем сообщение об ошибке
     await bot.api.answer(message, errorMessage)
-
 proc newBot(config: BotConfig): VkBot =
   ## Возвращает новый объект VkBot на основе токена
   let
