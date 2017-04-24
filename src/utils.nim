@@ -2,8 +2,6 @@
 
 # Стандартная библиотека
 import macros, strtabs, times, strutils, random, os, sequtils
-# Nimble
-import strfmt, colorize
 # Свои пакеты
 import types
 
