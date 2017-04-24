@@ -16,10 +16,13 @@ var running = false
 
 proc getLongPollUrl(bot: VkBot) =
   ## Получает URL для Long Polling на основе данных, полученных ботом
-  const WaitTime = 20
+  const 
+    WaitTime = "20"
+    UrlFormat = "https://$1?act=a_check&key=$2&ts=$3&wait=$4&mode=2&version=1"
   let
     data = bot.lpData
-    url = interp"https://${data.server}?act=a_check&key=${data.key}&ts=${data.ts}&wait=${WaitTime}&mode=2&version=1"
+    #url = "https://${data.server}?act=a_check&key=${data.key}&ts=${data.ts}&wait=${WaitTime}&mode=2&version=1"
+    url = UrlFormat % [data.server, data.key, $data.ts, WaitTime]
   bot.lpUrl = url
 
 proc processCommand(body: string): Command =
@@ -206,7 +209,7 @@ when isMainModule:
   # Устанавливаем хук на Ctrl+C, пока что бесполезен, но
   # может пригодиться в будущем (закрывать сессии к БД и т.д)
   setControlCHook(gracefulShutdown)
-  logWithStyle(Success):
+  logWithStyle(fgGreen):
     ("Общее количество команд - " & $len(commands))
     ("Бот успешно запущен и ожидает новых команд!")
 

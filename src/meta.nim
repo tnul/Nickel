@@ -13,7 +13,6 @@ macro command*(cmds: varargs[string], body: untyped): untyped =
     usage = ""
     moduleUsages: seq[string] = @[]
     procBody = newStmtList()
-  
   # If we have `usage = something`
   if body[0].kind == nnkAsgn:
     let text = body[0][1]
@@ -26,13 +25,14 @@ macro command*(cmds: varargs[string], body: untyped): untyped =
     elif text.kind == nnkStrLit or text.kind == nnkTripleStrLit:
       procBody = newStmtList()
       usage = text.strVal
-    
     # Add actual handler code except line with usage
     for i in 1..<body.len:
       procBody.add body[i]
   # Add to global usages only if usage is not an empty string
   if len(usage) > 0:
     usages.add(usage)
+  #result = quote do:
+  #  const usage = `usage` 
   # If there's some strings in moduleUsages
   if moduleUsages != @[]:
     for x in moduleUsages:

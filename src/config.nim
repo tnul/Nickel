@@ -21,15 +21,15 @@ full_errors = True  # Нужно ли отправлять пользовате�
 on_error = "Произошла ошибка при выполнении бота:"
 """
 
-  FileCreatedMessage = Hint("""Был создан файл settings.ini. Пожалуйста
-измените настройки на свои!""")
+  FileCreatedMessage = """Был создан файл settings.ini. Пожалуйста
+измените настройки на свои!"""
 
-  NoTokenError = Error("Вы не указали токен группы в settings.ini!")
+  NoTokenMessage = "Вы не указали токен группы в settings.ini!"
 
-  ConfigLoadError = Error("""Не удалось загрузить конфигурацию. 
-Если у вас есть settings.ini, попробуйте его удалить и запустить бота заново""")
+  ConfigLoadMessage = """Не удалось загрузить конфигурацию. 
+Если у вас есть settings.ini, попробуйте его удалить и запустить бота заново"""
 
-  LoadMessage = Warning("Загрузка настроек из settings.ini:")
+  LoadMessage = "Загрузка настроек из settings.ini:"
 
 
 
@@ -38,7 +38,7 @@ proc parseConfig*(): BotConfig =
   ## Парсинг settings.ini, создаёт его, если его нет, возвращает объект конфига
   if not existsFile("settings.ini"):
     open("settings.ini", fmWrite).write(DefaultSettings)
-    log(FileCreatedMessage)
+    logHint(FileCreatedMessage)
     quit(1)
 
   try:
@@ -56,18 +56,18 @@ proc parseConfig*(): BotConfig =
       )
 
     if config.token == "":
-      log(NoTokenError)
+      logError(NoTokenMessage)
       quit(1)
-    log(LoadMessage)
+    logWarning(LoadMessage)
     return config
   except:
     # Если произошла какая-то ошибка при загрузке конфига
-    log(ConfigLoadError)
+    logError(ConfigLoadMessage)
     quit(1)
 
 
 proc log*(config: BotConfig) =
-  logWithStyle(Hint):
+  logWithStyle(fgCyan):
     ("Логгировать сообщения - " & $config.logMessages)
     ("Логгировать команды - " & $config.logCommands)
     ("Сообщение при ошибке - \"" & $config.errorMessage & "\"")

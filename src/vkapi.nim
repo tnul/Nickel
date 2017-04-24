@@ -42,12 +42,14 @@ proc callMethod*(api: VkApi, methodName: string, params = newStringTable(),
         needAuth = true, flood = false): Future[JsonNode] {.async.} =
   ## Отправляет запрос к методу {methodName} с параметрами  {params} типа JsonNode
   ## и допольнительным {token}
-  let http = newAsyncHttpClient()
+  const
+    BaseUrl = "https://api.vk.com/method/"
   let 
+    http = newAsyncHttpClient()
     # Если нужна авторизация апи - используем токен апи, иначе - пустой токен
     token = if likely(needAuth): api.token else: ""
     # Создаём URL
-    url = "https://api.vk.com/method/" & interp("$methodName?access_token=$token&v=5.63&")
+    url = BaseUrl & "$1?access_token=$2&v=5.63&" % [methodName, token]
   
   # Если была ошибка о флуде, добавляем анти-флуд
   if flood:

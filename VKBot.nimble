@@ -1,17 +1,12 @@
 # Package
-
-version       = "0.0.2"
+version       = "0.0.3"
 author        = "Daniil Yarancev"
-description   = "VKBot - command bot for Russian biggest social network - VKontakte"
-license       = "GPLv3"
+description   = "VKBot - command bot for largest CIS social network - VKontakte"
+license       = "MIT"
 srcDir = "src"
-bin = @["vkbot"]
-skipFiles = @["nakefile.nim"]
-# Dependencies
+bin = @["vkbot.linux64", "vkbot.linux32", "vkbot.linux", "vkbot.win64.exe", "vkbot.win32.exe", "vkbot.win.exe"]
 
 requires "nim >= 0.16.1"
-requires "strfmt"
-requires "colorize"
 
 when defined(nimdistros):
   import distros

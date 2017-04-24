@@ -2,11 +2,10 @@ include baseimports
 import times
 import macros
 
-template log*(data: string) =
-  ## Выводит сообщение data со стилем style в консоль с указанием времени 
-  stdout.write("\e[0;32m")  # Синий цвет
-  stdout.write("[" & getClockStr() & "] ")  # Пишем время 
-  stdout.write(data & "\n")  # Пишем само сообщение
+proc log*(data: string, style: ForegroundColor = fgBlack) =
+  ## Выводит сообщение в консоль с указанием времени 
+  let curtime = "[$1] " % [getClockStr()]
+  styledWriteLine(stdout, fgBlue, curtime, style, data)
 
 proc log*(msg: Message, command: bool) = 
   ## Логгирует объект сообщения в консоль
@@ -18,18 +17,18 @@ proc log*(msg: Message, command: bool) =
     else:
       args = "без аргументов"
     # Зелёным цветом
-    log(interp"${frm} > Команда `${msg.cmd.name}` $args".fgGreen)
+    log("${frm} > Команда `$1` $2" % [frm, msg.cmd.name, args], fgGreen)
   else:
     # Голубым цветом
-    log(interp"Сообщение `${msg.body}` от ${frm}".fgCyan)
+    log("Сообщение `$1` от $2" % [msg.body, frm], fgCyan)
 
-macro logWithStyle*(style: proc (data: string): string, body: untyped): untyped = 
+macro logWithStyle*(style: ForegroundColor, body: untyped): untyped = 
   result = newStmtList()
   # проверяем, что body - список выражений
   expectKind body, nnkStmtList
   for elem in body:
     result.add quote do:
-      log `style` `elem`
+      `elem`.log(`style`)
     # Скобки
     #expectKind elem, nnkPar
     # Длина - 1 элемент
@@ -39,27 +38,18 @@ macro logWithStyle*(style: proc (data: string): string, body: untyped): untyped 
     # Добавляем выражение к результату
     #result.add quote do:
     #  log `style` `toWrite`
-  
+
+system.addQuitProc(resetAttributes)
+
+
 template logError*(data: string) = 
-  log(data.fgRed.bold)
+  data.log(fgRed)
 
 template logWarning*(data: string) = 
-  log(data.fgYellow.bold)
+  data.log(fgYellow)
 
 template logSuccess*(data: string) = 
-  log(data.fgGreen)
+  data.log(fgGreen)
 
 template logHint*(data: string) = 
-  log(data.fgCyan)
-
-proc Success*(data: string): string = 
-  return data.fgGreen
-
-proc Error*(data: string): string = 
-  return data.fgRed.bold
-
-proc Hint*(data: string): string = 
-  return data.fgCyan
-
-proc Warning*(data: string): string = 
-  return data.fgYellow.bold
+  data.log(fgCyan)

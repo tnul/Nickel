@@ -12,10 +12,7 @@ import uri  # Для парсинга URL
 import random  # для анти флуда
 import strutils  # Утилиты для работы со строками
 import asyncdispatch  # Асинхронность
-
-# Модули из Nimble
-import strfmt  # используется функция interp
-import colorize  # для цветного логгирования
+import terminal  # Цветное логгирование и на Windows, и на Linux
 
 # Свои модули
 import log
