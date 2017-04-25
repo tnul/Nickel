@@ -1,9 +1,42 @@
 # Файл с различными хелперами
 
 # Стандартная библиотека
-import macros, strtabs, times, strutils, random, os, sequtils
+import macros, strtabs, times, strutils, random, os, sequtils, unicode
 # Свои пакеты
 import types
+
+const 
+  English = ["Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P", "A", 
+             "S", "D", "F", "G", "H", "J", "K", "L", "Z", "X", "C", 
+             "V", "B", "N", "M", "q", "w", "e", "r", "t", "y", "u", "i", 
+             "o", "p", "a", "s", "d", "f", "g", "h", "j", "k", "l", 
+             "z", "x", "c", "v", "b", "n", "m", ":", "^", "~", "`", 
+             "{", "[", "}", "]", "\"", "'", "<", ",", ">", ".", ";", 
+             "?", "/", "&", "@", "#", "$"]
+    
+  Russian = ["Й", "Ц", "У", "К", "Е", "Н", "Г", "Ш", "Щ", "З", "Ф", 
+             "Ы", "В", "А", "П", "Р", "О", "Л", "Д", "Я", "Ч", "С", 
+             "М", "И", "Т", "Ь", "й", "ц", "у", "к", "е", "н", "г", "ш", 
+             "щ", "з", "ф", "ы", "в", "а", "п", "р", "о", "л", "д", 
+             "я", "ч", "с", "м", "и", "т", "ь", "Ж", ":", "Ё", "ё", 
+             "Х", "х", "Ъ", "ъ", "Э", "э", "Б", "б", "Ю", "ю", "ж", 
+             ",", ".", "?", "'", "№", ";"]
+
+template convert(data:string, frm, to: untyped): untyped = 
+  result = ""
+  for x in utf8(data):
+    if not frm.contains(x):
+      result.add x
+      continue
+    result.add to[frm.find(x)]
+
+proc toRus*(data: string): string = 
+  ## Конвертирует строку в английской раскладке в русскую
+  convert(data, English, Russian)
+
+proc toEng*(data: string): string = 
+  ## Конвертирует строку в русской раскладке в английскую
+  convert(data, Russian, English)
 
 # http://stackoverflow.com/questions/31948131/unpack-multiple-variables-from-sequence
 macro extract*(args: varargs[untyped]): typed =
@@ -27,7 +60,7 @@ macro extract*(args: varargs[untyped]): typed =
 
       let assign = newLetStmt(arg, rhs) # could be replaced by newVarStmt
       result.add(assign)
-    i += 1
+    inc i
   #echo result.treerepr
 
 const IgnoreFilenames = ["base.nim"]

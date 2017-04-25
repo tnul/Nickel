@@ -2,7 +2,7 @@ include base
 import unicode
 
 
-module "Перечёркиватель":
+module "&#128394;", "Перечёркиватель":
   command "перечеркни", "зачеркни":
     usage = "зачеркни <строка> - перечеркнуть строку"
     let text = msg.cmd.args.join(" ")

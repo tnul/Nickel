@@ -1,5 +1,6 @@
 include baseimports
 import utils, vkapi
+
 proc runCatch*(exec: ModuleFunction, bot: VkBot, msg: Message) = 
   let future = exec(bot.api, msg)
   future.callback =
@@ -23,4 +24,5 @@ proc runCatch*(exec: ModuleFunction, bot: VkBot, msg: Message) =
           #Если нужно писать ошибки в консоль
           logError("\n" & getCurrentExceptionMsg())
         # Отправляем сообщение об ошибке
-        asyncCheck bot.api.answer(msg, errorMessage)
+        if bot.config.reportErrors:
+          asyncCheck bot.api.answer(msg, errorMessage)

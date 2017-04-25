@@ -35,7 +35,7 @@ proc getData(): Future[string] {.async.} =
   data = info
   return info
 
-module "&#128177; Курсы валют":
+module "&#128177;", "Курсы валют":
   command "курс", "валюта", "валюты", "доллар":
     usage = "курс - вывести курсы доллара, евро, фунта к рублю"
     await api.answer(msg,  await getData())

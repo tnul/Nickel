@@ -35,7 +35,7 @@ proc giveMemes(api: VkApi, msg: Message, groupId: string) {.async.} =
       attachment = "photo$1_$2_$3" % [oid, attachId, accessKey]
     await api.answer(msg, random(Answers), attaches = attachment)
 
-module "Двач - случайные мемы с двача или из https://vk.com/hard_ps":
+module "﷽", "Двач - случайные мемы с двача или из https://vk.com/hard_ps":
   command "двач", "2ch":
     usage = "двач - случайный мем с двача"
     await giveMemes(api, msg, DvachGroupId)

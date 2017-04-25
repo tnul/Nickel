@@ -54,5 +54,3 @@ type
   Module* = object
     name*: string
     usages*: seq[string]
-
-

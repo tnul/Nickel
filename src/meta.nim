@@ -8,7 +8,7 @@ var count {.compiletime.} = 1
 macro command*(cmds: varargs[string], body: untyped): untyped =
   let 
     # Unique name for each handler procedure
-    uniqName = newIdentNode("handler"& $count)
+    uniqName = newIdentNode("handler" & $count)
   var 
     usage = ""
     moduleUsages: seq[string] = @[]
@@ -52,8 +52,14 @@ macro command*(cmds: varargs[string], body: untyped): untyped =
     # Call proc.handle(cmds) from command.nim
     handle(`uniqName`, cmds)
 
-macro module*(name: string, body: untyped): untyped = 
-  modules.add(name.strVal)
+macro module*(names: varargs[string], body: untyped): untyped = 
+  var moduleName = ""
+  # For every string in names append it to moduleName with space
+  for name in names:
+    moduleName &= name.strVal & " "
+  # Remove whitespaces at the end
+  moduleName = moduleName.strip()
+  modules.add(moduleName)
   result = newStmtList()
   for i in 0..<len(body):
     result.add(body[i])
