@@ -98,9 +98,9 @@ proc getMoscowTime*(): string =
   let curTime = getGmTime(getTime()) + initInterval(hours=3)
   return format(curTime, "d'.'M'.'yyyy HH':'mm':'ss")
 
-proc antiFlood*(): string {.inline.} =
+proc antiFlood*(): string =
    ## Служит ля обхода анти-флуда Вконтакте (генерирует пять случайных букв)
    const Alphabet = "ABCDEFGHIJKLMNOPQRSTUWXYZ"
-   var data = ""
+   var result = ""
    for x in 0..4:
-     data.add(random(Alphabet))
+     result.add random(Alphabet)

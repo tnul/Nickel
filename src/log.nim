@@ -13,7 +13,7 @@ proc log*(msg: Message, command: bool) =
   if command:
     var args = ""
     if len(msg.cmd.args) > 0:
-      args = "с аргументами " & msg.cmd.args.join(", ")
+      args = "с аргументами " & $msg.cmd.args
     else:
       args = "без аргументов"
     # Зелёным цветом

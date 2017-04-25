@@ -13,6 +13,3 @@ module "&#8505;", "Пример модуля":
     # Переменные msg (Message) и api (VkApi) неявно доступны в этом блоке
     let args = msg.cmd.args.join(", ")
     await api.answer(msg, "Это тестовая команда. Аргументы - " & args)
-  command "два":
-    usage = "два - вывести число 2"
-    await api.answer(msg, "2")

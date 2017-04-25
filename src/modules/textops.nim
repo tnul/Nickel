@@ -59,3 +59,4 @@ module "&#128394;", "Операции с текстом":
         else: 
           result &= letter
     await api.answer(msg, text.replace())
+    
