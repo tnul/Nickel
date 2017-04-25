@@ -26,12 +26,13 @@ textToDays.sort(sortData)
 module "&#127782;", "Погода":
   command "погода":
     usage = "погода <город> <время> - узнать погоду, например `погода в Москве через неделю`"
-    let client = newAsyncHttpClient()
+    let 
+      client = newAsyncHttpClient()
+      args = msg.cmd.args
     var 
       city = DefaultCity
       days = 1
       url: string
-    let args = msg.cmd.args
     if args.len > 0:
       var args = args.join(" ")
 
@@ -42,15 +43,16 @@ module "&#127782;", "Погода":
       let possibleCity = args.replace(" в ", "").replace(" в", "").replace("в ", "")
       if possibleCity != "":
         city = unicode.toLower(possibleCity)
-    echo city
+      
     url = BaseURL & "forecast/daily?APPID=$1&lang=ru&q=$2&cnt=$3" % [Key, city, $(days)]
     let resp = await client.get(url)
+    # Если сервер не нашёл этот город
     if resp.code != HttpCode(200):
       await api.answer(msg, "Информацию по заданному городу получить не удалось :(")
       return
-    let data = parseJson(await resp.body)
-    echo data
     let
+      # Парсим ответ сервера
+      data = parseJson(await resp.body)
       # День - последний элемент из массива
       day = data["list"].getElems[^1]
       # Конвертируем температуру по Фаренгейту в Цельсии и переводим в int
