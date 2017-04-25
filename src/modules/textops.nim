@@ -1,6 +1,5 @@
 include base
 import unicode, sequtils
-import nimbench
 
 const
   FlipTable = {"a": "ɐ","b": "q", "c": "ɔ","d": "p", 
