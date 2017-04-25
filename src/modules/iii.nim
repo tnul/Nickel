@@ -18,7 +18,7 @@ proc encrypt(msg: string): string =
 proc decrypt(msg: string): string = 
   result = base64.decode interXor base64.decode(msg)
 
-proc init(id: string): Future[string] {.async.}= 
+proc init(id: string): Future[string] {.async.} = 
   let 
     client = newAsyncHttpClient()
     data = await client.getContent("http://iii.ru/api/2.0/json/Chat.init/$1/$2" % [BotID, id])
@@ -36,7 +36,7 @@ proc chat(ses: string, msg: string): Future[string] {.async.} =
 var 
   sessions = initTable[string, string]()
 
-module "Бот iii.ru":
+module "&#128172;", "Бот iii.ru":
   command "сеть", "бот", "iii":
     usage = "сеть <текст> - отправить боту сообщение"
     let 

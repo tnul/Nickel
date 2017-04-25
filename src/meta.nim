@@ -1,6 +1,7 @@
 import macros
 import strutils
 import command
+import asyncdispatch
 
 var count {.compiletime.} = 1
 
@@ -19,8 +20,8 @@ macro command*(cmds: varargs[string], body: untyped): untyped =
     
     # If it's an array like ["a", "b"]
     if text.kind == nnkBracket:
-      for i in 0..<len(text):
-        moduleUsages.add(text[i].strVal)
+      for i in 0..<text.len:
+        moduleUsages.add text[i].strVal
     # If it's a string or a triple-quoted string
     elif text.kind == nnkStrLit or text.kind == nnkTripleStrLit:
       procBody = newStmtList()
@@ -29,12 +30,12 @@ macro command*(cmds: varargs[string], body: untyped): untyped =
     for i in 1..<body.len:
       procBody.add body[i]
   # Add to global usages only if usage is not an empty string
-  if len(usage) > 0:
-    usages.add(usage)
+  if usage.len > 0:
+    usages.add usage
   #result = quote do:
   #  const usage = `usage` 
   # If there's some strings in moduleUsages
-  if moduleUsages != @[]:
+  if moduleUsages.len > 0:
     for x in moduleUsages:
       # Add to global usages
       if x != "": usages.add(x)

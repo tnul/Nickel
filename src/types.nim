@@ -20,7 +20,7 @@ type
     name*: string  # Сама команда
     args*: seq[string]  # Последовательность аргументов
 
-  Message* = object
+  Message* = ref object
     id*: int  # ID сообщения
     pid*: int  # ID отправителя
     timestamp*: int  # Дата отправки
@@ -33,6 +33,7 @@ type
     token*: string
     logMessages*: bool
     logCommands*: bool
+    convertText*: bool
     errorMessage*: string
     reportErrors*: bool
     logErrors*: bool

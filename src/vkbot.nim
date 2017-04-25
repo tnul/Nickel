@@ -1,5 +1,6 @@
 {.experimental.}
 include baseimports
+import sequtils  # Работа с последовательностями
 
 # Свои модули, и модули, которых нет в Nimble
 import utils  # Макрос unpack (взят со stackoverflow)
@@ -34,20 +35,29 @@ proc processCommand(body: string): Command =
 
 proc processMessage(bot: VkBot, msg: Message) {.async.} =
   ## Обрабатывает сообщение: логгирует, передаёт события плагинам
-  let cmdText = msg.cmd.name
+  let 
+    cmdText = msg.cmd.name
+    converted = toRus(cmdText)
+    needConvert = (bot.config.convertText and msg.cmd.name != converted)
   # Если в таблице команд есть эта команда
-  if commands.contains(cmdText):
+  if commands.contains(cmdText) or commands.contains(converted) and needConvert:
+    if needConvert:
+      # Изменяем команду в объекте сообщения
+      msg.cmd.name = converted
+      # Так же конвертируем все аргументы
+      msg.cmd.args.applyIt toRus(it)
     # Если нужно логгировать команды
     if bot.config.logCommands:
       msg.log(command = true)
     # Получаем процедуру плагина, которая обрабатывает эту команду
-    let handler = commands[cmdText]
+    let handler = commands[msg.cmd.name]
     # Выполняем процедуру асинхронно с хэндлером ошибок
     runCatch(handler, bot, msg)
   else:
     # Если это не команда, и нужно логгировать сообщения
     if bot.config.logMessages:
       msg.log(command = false)
+
 
 proc processLpMessage(bot: VkBot, event: seq[JsonNode]) {.async.} =
   ## Обрабатывает сырое событие нового сообщения
@@ -94,6 +104,7 @@ proc processLpMessage(bot: VkBot, event: seq[JsonNode]) {.async.} =
       logError("\n" & getCurrentExceptionMsg())
     # Отправляем сообщение об ошибке
     await bot.api.answer(message, errorMessage)
+
 proc newBot(config: BotConfig): VkBot =
   ## Возвращает новый объект VkBot на основе токена
   let

@@ -17,7 +17,7 @@ proc log*(msg: Message, command: bool) =
     else:
       args = "без аргументов"
     # Зелёным цветом
-    log("$1 > Команда `$1` $2" % [frm, msg.cmd.name, args], fgGreen)
+    log("$1 > Команда `$2` $3" % [frm, msg.cmd.name, args], fgGreen)
   else:
     # Голубым цветом
     log("Сообщение `$1` от $2" % [msg.body, frm], fgCyan)

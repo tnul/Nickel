@@ -10,7 +10,7 @@ token = ""  # Введите тут свой токен от группы
 [Bot]
 messages = True  # Нужно ли логгировать сообщения? True/False
 commands = True  # Нужно ли логгировать команды? True/False
-
+try_convert = True  # Пытаться ли переводить сообщения из английской в русскую раскладку?
 [Errors]
 report_errors = True  # Нужно ли сообщать пользователям, когда в каком-то модуле произошла ошибка?
 log_errors = True  # Нужно ли писать ошибки вместе с логом в консоль?
@@ -49,6 +49,7 @@ proc parseConfig*(): BotConfig =
         token: data.getSectionValue("Auth", "token"),
         logMessages: data.getSectionValue("Bot", "messages").parseBool(),
         logCommands: data.getSectionValue("Bot", "commands").parseBool(),
+        convertText: data.getSectionValue("Bot", "try_convert").parseBool(),
         reportErrors: data.getSectionValue("Errors", "report_errors").parseBool(),
         fullReport: data.getSectionValue("Errors", "full_errors").parseBool(),
         logErrors: data.getSectionValue("Errors", "log_errors").parseBool(),
