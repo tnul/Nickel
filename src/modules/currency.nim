@@ -20,7 +20,7 @@ proc getData(): Future[string] {.async.} =
       rawData = await client.getContent(Url & curr)
       data = parseJson(rawData)["rates"]
       # Обрезаем число до 2 знаков после запятой
-      rubleInfo = data["RUB"].getFNum.formatFloat(precision=2)
+      rubleInfo = data["RUB"].getFNum.formatFloat(precision=4)
     
     case curr:
       of "USD":
