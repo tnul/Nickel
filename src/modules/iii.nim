@@ -37,10 +37,10 @@ var
   sessions = initTable[string, string]()
 
 module "&#128172;", "Бот iii.ru":
-  command "сеть", "бот", "iii":
+  command "сеть", "iii", "б":
     usage = "сеть <текст> - отправить боту сообщение"
     let 
-      text = msg.cmd.args.join(" ")
+      text = args.join(" ")
       uid = $msg.pid
     if not sessions.hasKey(uid):
       sessions[uid] = await init(uid)

@@ -23,23 +23,10 @@ const
     "2": "ᄅ", "3": "Ɛ", "4": "ㄣ", "5": "ϛ",
     "6": "9", "7": "ㄥ", "8": "8", "9": "6", "0": "0"}.toTable
 
-module "&#128394;", "Перечёркиватель":
-  command "перечеркни", "зачеркни":
-    usage = "зачеркни <строка> - перечеркнуть строку"
-    let text = msg.cmd.args.join(" ")
-    if text == "":
-      await api.answer(msg, "перечеркни <строка> - перечеркнуть строку")
-    else:
-      var res = ""
-      for x in utf8(text):
-        res.add x & "&#38;#0822;"
-      await api.answer(msg, res)
-
-
 module "&#128394;", "Операции с текстом":
   command "перечеркни", "зачеркни":
     usage = "зачеркни <строка> - перечеркнуть строку"
-    let text = msg.cmd.args.join(" ")
+    let text = args.join(" ")
     if text == "":
       await api.answer(msg, "перечеркни <строка> - перечеркнуть строку")
     else:
@@ -53,10 +40,34 @@ module "&#128394;", "Операции с текстом":
     let text = msg.cmd.args.join(" ")
     proc replace(data: string): string = 
       result = ""
-      for letter in utf8(unicode.toLower(data.reversed)):
+      for letter in unicode.toLower(data.reversed).utf8:
         if FlipTable.hasKey(letter): 
           result &= FlipTable[letter]
         else: 
           result &= letter
     await api.answer(msg, text.replace())
     
+  command "лол":
+    usage = "лол <кол-во> - генерирует смех определённой длины из символов АЗХ"
+    const 
+      LolWord = "АЗХ"
+      Default = 5
+      Max = 90
+    var 
+      converted: seq[int]
+      failed = false
+    try:
+      converted = args.mapIt(it.parseInt)
+    except:
+      failed = true
+    if failed:
+      await api.answer(msg, usage)
+      return
+    var count: int
+    if converted.len < 1 or converted[0] < 0:
+      count = Default
+    elif converted[0] > Max:
+      count = Max
+    else:
+      count = converted[0]
+    await api.answer(msg, LolWord.repeat(count))

@@ -6,13 +6,13 @@ const
   MemesGroupId = "-86441049"  # https://vk.com/hard_ps
 
 proc giveMemes(api: VkApi, msg: Message, groupId: string) {.async.} = 
-    ## Получает случайную фотографию из постов группы
+    ## Получает случайную фотографию из постов группы с id groupId
     var 
       photo: JsonNode = nil
       values = {"owner_id": groupId,  # ID группы
                 "offset": $(random(1984) + 1),  # оффсет
                 "count": "1"  # кол-во записей 
-                }.api 
+                }.toApi
       
     # Пока мы не нашли фотографию
     while photo == nil:

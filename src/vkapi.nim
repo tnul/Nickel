@@ -11,12 +11,13 @@ proc postData*(client: AsyncHttpClient, url: string, params: StringTableRef):
                                     Future[AsyncResponse] {.async.} =
   ## Делает POST запрос на {url} с параметрами {params}
   var data = ""
-  # Кодируем ключ и значение для URL, и добавляем к query
-  for key, val in pairs(params):
-    let 
-      enck = cgi.encodeUrl(key)
-      encv = cgi.encodeUrl(val)
-    data.add($enck & "=" & $encv & "&")
+  # Кодируем ключ и значение для URL, и добавляем к query (если есть параметры)
+  if params != nil:
+    for key, val in pairs(params):
+      let 
+        enck = cgi.encodeUrl(key)
+        encv = cgi.encodeUrl(val)
+      data.add($enck & "=" & $encv & "&")
   # Отправляем запрос и возвращаем его ответ
   return await client.post(url, body=data)
 
@@ -37,8 +38,9 @@ proc apiLimiter(api: VkApi) {.async.} =
   inc(api.reqCount)
   await sleepAsync(SleepTime)
   dec(api.reqCount)
-  
-proc callMethod*(api: VkApi, methodName: string, params = newStringTable(),
+
+
+proc callMethod*(api: VkApi, methodName: string, params: StringTableRef = nil,
         needAuth = true, flood = false): Future[JsonNode] {.async.} =
   ## Отправляет запрос к методу {methodName} с параметрами  {params} типа JsonNode
   ## и допольнительным {token}
@@ -92,7 +94,7 @@ proc attaches* (msg: Message, vk: VkApi): Future[seq[Attachment]] {.async.} =
     # ID аттача
     id = msg.id
     # Значения для запроса
-    values = {"message_ids": $id, "previev_length": "1"}.api
+    values = {"message_ids": $id, "previev_length": "1"}.toApi
     msgData = await vk.callMethod("messages.getById", values)
   if msgData == %*{}:
     return
@@ -107,9 +109,10 @@ proc attaches* (msg: Message, vk: VkApi): Future[seq[Attachment]] {.async.} =
       typ = rawAttach["type"].str
       # Сам аттач
       attach = rawAttach[typ]
-    var link = ""
+    var 
+      link = ""
+      biggestRes = 0
     # Ищем ссылку на фото
-    var biggestRes = 0
     for k, v in pairs(attach):
       if "photo_" in k:
         # Парсим разрешение фотки
@@ -149,7 +152,7 @@ proc attaches* (msg: Message, vk: VkApi): Future[seq[Attachment]] {.async.} =
 
 proc answer*(api: VkApi, msg: Message, body: string, attaches = "") {.async.} =
   ## Упрощённая процедура для ответа на сообщение {msg}
-  let data = {"message": body, "peer_id": $msg.pid}.api
+  let data = {"message": body, "peer_id": $msg.pid}.toApi
   # Если есть какие-то приложения, добавляем их в значения для API
   if len(attaches) > 0:
     data["attachment"] = attaches

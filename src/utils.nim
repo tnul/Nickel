@@ -84,13 +84,15 @@ macro importPlugins*(): untyped =
       filename = path.rsplit(separator, maxsplit=1)[1]
     if filename in IgnoreFilenames:
       continue
-    let toImport = filename.split(".")[0]
-    result.add(parseExpr("import " & folder & "/" & toImport))
+    let toImport = filename.split(".")
+    if toImport[1] != "nim":
+      continue
+    result.add(parseExpr("import " & folder & "/" & toImport[0]))
   
 
-proc api*(keyValuePairs: varargs[tuple[key, val: string]]): StringTableRef {.inline.} = 
+proc toApi*(keyValuePairs: varargs[tuple[key, val: string]]): StringTableRef {.inline.} = 
   ## Возвращает новую строковую таблицу, может использоваться
-  ## вот так: var info = {"message":"Hello", "peer_id": "123"}.api
+  ## вот так: var info = {"message":"Hello", "peer_id": "123"}.toApi
   return newStringTable(keyValuePairs, modeCaseInsensitive)
 
 proc getMoscowTime*(): string =

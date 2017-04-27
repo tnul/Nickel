@@ -18,7 +18,7 @@ var running = false
 proc getLongPollUrl(bot: VkBot) =
   ## Получает URL для Long Polling на основе данных, полученных ботом
   const 
-    UrlFormat = "https://$1?act=a_check&key=$2&ts=$3&wait=20&mode=2&version=1"
+    UrlFormat = "https://$1?act=a_check&key=$2&ts=$3&wait=5&mode=2&version=1"
   let
     data = bot.lpData
   bot.lpUrl = UrlFormat % [data.server, data.key, $data.ts]
@@ -39,7 +39,7 @@ proc processMessage(bot: VkBot, msg: Message) {.async.} =
     cmdText = msg.cmd.name
     converted = toRus(cmdText)
     needConvert = (bot.config.convertText and msg.cmd.name != converted)
-  # Если в таблице команд есть эта команда
+  # Если в таблице команд есть эта команда или конвертированная команда
   if commands.contains(cmdText) or commands.contains(converted) and needConvert:
     if needConvert:
       # Изменяем команду в объекте сообщения
@@ -113,20 +113,21 @@ proc newBot(config: BotConfig): VkBot =
   return VkBot(api: api, lpData: lpData, config: config)
 
 
-proc getRawLPData(api: VkApi): Future[JsonNode] {.async.} = 
+proc getLongPollApi(api: VkApi): Future[JsonNode] {.async.} = 
+  ## Возвращает значения Long Polling от VK API
   const MaxRetries = 5  # Максимальнок кол-во попыток для запроса лонг пуллинга
-  let params = {"use_ssl":"1"}.api
+  let params = {"use_ssl":"1"}.toApi
   # Пытаемся получить значения Long Polling'а (5 попыток)
   for retry in 0..MaxRetries:
     result = await api.callMethod("messages.getLongPollServer", params)
     # Если есть какие-то объекты в data, выходим из цикла
-    if likely(result.len() > 0):
+    if result.len > 0:
       break
 
 
 proc initLongPolling(bot: VkBot, failNum = 0) {.async.} =
   ## Инициализирует данные или обрабатывает ошибку Long Polling сервера
-  let data = await bot.api.getRawLPData()
+  let data = await bot.api.getLongPollApi()
   # Смотрим на код ошибки
   case int(failNum)
     # Первый запуск бота
@@ -153,18 +154,23 @@ proc initLongPolling(bot: VkBot, failNum = 0) {.async.} =
 proc mainLoop(bot: VkBot) {.async.} =
   ## Главный цикл бота (тут происходит получение новых событий)
   running = true
-  let http = newAsyncHttpClient()
+  var http = newAsyncHttpClient()
+
   while running:
+    # Получаем новый URL для лонг пуллинга
+    bot.getLongPollUrl()
     # Получаем ответ от сервера ВК
-    let request = http.postContent(bot.lpUrl)
+    let request = http.getContent(bot.lpUrl)
     yield request
     if request.failed:
-      await sleepAsync(200)
+      var http = newAsyncHttpClient()
+      echo bot.lpURL
+      echo getCurrentExceptionMsg()
       continue
     let
       # Парсим ответ сервера в JSON
-
       jsonData = parseJson(request.read())
+      # Получаем поле failed (если его нет, получаем nil)
       failed = jsonData.getOrDefault("failed")
     # Если у нас есть поле failed - значит произошла какая-то ошибка
     if unlikely(failed != nil):
@@ -192,8 +198,7 @@ proc mainLoop(bot: VkBot) {.async.} =
 
     # Обновляем метку времени
     bot.lpData.ts = int(jsonData["ts"].getNum())
-    # Получаем новый URL для лонг пуллинга
-    bot.getLongPollUrl()
+    
 
 proc startBot(bot: VkBot) {.async.} =
   ## Инициализирует Long Polling и запускает главный цикл бота
@@ -212,7 +217,7 @@ when isMainModule:
   # Выводим значения конфига (кроме токена)
   cfg.log()
   # Создаём новый объект бота на основе конфигурации
-  var bot = newBot(cfg)
+  let bot = newBot(cfg)
   # Устанавливаем хук на Ctrl+C, пока что бесполезен, но
   # может пригодиться в будущем (закрывать сессии к БД и т.д)
   setControlCHook(gracefulShutdown)

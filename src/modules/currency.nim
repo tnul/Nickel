@@ -9,18 +9,18 @@ var
 
 proc getData(): Future[string] {.async.} =
   # Если у нас сохранены данные и прошло меньше 1800 секунд
-  if len(data) > 0 and (epochTime() - lastTime) <= 1800.0:
+  if data.len > 0 and (epochTime() - lastTime) <= 1800.0:
     # Возвращаеи кешированные данные
     return data
   # Иначе - получаем их
   let client = newAsyncHttpClient()
   var info = ""
   for curr in ["USD", "EUR", "GBP"]:
-    let 
+    let
       rawData = await client.getContent(Url & curr)
       data = parseJson(rawData)["rates"]
-      # Округляем float до 2 знаков после запятой
-      rubleInfo = $round(float(data["RUB"].getFNum()), 2)
+      # Обрезаем число до 2 знаков после запятой
+      rubleInfo = data["RUB"].getFNum.formatFloat(precision=2)
     
     case curr:
       of "USD":

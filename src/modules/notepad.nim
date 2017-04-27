@@ -9,10 +9,7 @@ var savedData = newStringTable()
 
 proc restore(peerId: string): string = 
   # Если есть сохранённые данные, отдаём
-  try:
-    return savedData[peerId]
-  except KeyError:
-    return ""
+  return savedData.getOrDefault(peerId, default = "")
 
 proc add(peerId: string, data: string) = 
   try:
@@ -26,9 +23,8 @@ module "&#128221;", "Блокнот":
   command "блокнот", "блокнотик", "дневник":
     usage = ["блокнот запиши <выражение> - записать выражение в блокнот", 
              "блокнот покажи - показать записанные выражения"]
-    let args = msg.cmd.args
     # Если у нас нет аргументов
-    if unlikely(len(args) < 1):
+    if args.len < 1:
       await api.answer(msg, Usage)
       return
     # Получаем подкоманду

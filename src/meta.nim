@@ -1,10 +1,14 @@
+# Standart library
 import macros
 import strutils
+import sequtils
 import command
-import asyncdispatch
+# Custom modules
+import utils
+import vkapi
+import types
 
 var count {.compiletime.} = 1
-
 
 macro command*(cmds: varargs[string], body: untyped): untyped =
   let 
@@ -36,15 +40,24 @@ macro command*(cmds: varargs[string], body: untyped): untyped =
   #  const usage = `usage` 
   # If there's some strings in moduleUsages
   if moduleUsages.len > 0:
+    usage = moduleUsages.join("\n")
     for x in moduleUsages:
       # Add to global usages
       if x != "": usages.add(x)
   # Increment counter for unique procedure names
   inc count
-
+  
   let 
     api = newIdentNode("api")
     msg = newIdentNode("msg")
+    # Make usage nim node, so we can use "usage" inside of the actual body
+    usageConst = newConstStmt(newIdentNode("usage"), newStrLitNode(usage))
+    # Also add `args` for easy usage 
+    argsLet = newLetStmt(newIdentNode("args"), newDotExpr(
+      newDotExpr(msg, newIdentNode("cmd")), newIdentNode("args")
+    ))
+  procBody.insert(0, usageConst)
+  procBody.insert(0, argsLet)
   result = quote do:
     proc `uniqName`(`api`: VkApi, `msg`: Message) {.async.} = 
       `procBody`
@@ -76,3 +89,34 @@ macro vk*(b: untyped): untyped =
   result = quote do:
     api.callMethod(`apiCall`, )
 ]#
+
+macro vk*(call: untyped): untyped = 
+  expectKind call, nnkCall
+  let
+    meth = call[0]
+  expectKind meth, nnkDotExpr
+  let methodStr = meth.mapIt($it).join(".")
+  if call.len < 1:
+    # Without arguments
+    return quote do:
+      api.callMethod(`methodStr`)
+  let tabl = newNimNode(nnkTableConstr)
+  for i in 1..<call.len:
+    let 
+      arg = call[i]
+      key = $arg[0]
+      val = arg[1]
+    let colonExpr = newNimNode(nnkExprColonExpr)
+    colonExpr.add newStrLitNode(key)
+    case val.kind
+    of nnkIdent, nnkStrLit:
+      colonExpr.add val
+    of nnkIntLit:
+      colonExpr.add newLit($val.intVal)
+    of nnkFloatLit:
+      colonExpr.add newLit($val.floatVal)
+    else:
+      discard
+    tabl.add(colonExpr)
+  result = quote do:
+    api.callMethod(`methodStr`, params=`tabl`.toApi)
