@@ -90,3 +90,7 @@ module "&#9889;", "Случайные числа":
       await api.answer(msg, answer)
     else:
       await api.answer(msg, date)
+  
+  command "топ":
+    usage = "топ - узнать, топ ли это"
+    await api.answer(msg, if random(2) == 0: "не топ" else: "топ")
