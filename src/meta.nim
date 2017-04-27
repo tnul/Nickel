@@ -28,11 +28,10 @@ macro command*(cmds: varargs[string], body: untyped): untyped =
         moduleUsages.add text[i].strVal
     # If it's a string or a triple-quoted string
     elif text.kind == nnkStrLit or text.kind == nnkTripleStrLit:
-      procBody = newStmtList()
       usage = text.strVal
-    # Add actual handler code except line with usage
-    for i in 1..<body.len:
-      procBody.add body[i]
+  # Add actual handler code except line with usage
+  for i in 1..<body.len:
+    procBody.add body[i]
   # Add to global usages only if usage is not an empty string
   if usage.len > 0:
     usages.add usage
@@ -67,13 +66,8 @@ macro command*(cmds: varargs[string], body: untyped): untyped =
     handle(`uniqName`, cmds)
 
 macro module*(names: varargs[string], body: untyped): untyped = 
-  var moduleName = ""
-  # For every string in names append it to moduleName with space
-  for name in names:
-    moduleName &= name.strVal & " "
-  # Remove whitespaces at the end
-  moduleName = moduleName.strip()
-  modules.add(moduleName)
+  # Add 
+  modules.add names.mapIt(it.strVal).join(" ")
   result = newStmtList()
   for i in 0..<len(body):
     result.add(body[i])

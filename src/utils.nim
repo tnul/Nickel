@@ -103,6 +103,6 @@ proc getMoscowTime*(): string =
 proc antiFlood*(): string =
    ## Служит ля обхода анти-флуда Вконтакте (генерирует пять случайных букв)
    const Alphabet = "ABCDEFGHIJKLMNOPQRSTUWXYZ"
-   var result = ""
+   result = ""
    for x in 0..4:
      result.add random(Alphabet)
