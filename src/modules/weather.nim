@@ -44,7 +44,8 @@ module "&#127782;", "Погода":
     let resp = await client.get(url)
     # Если сервер не нашёл этот город
     if resp.code != HttpCode(200):
-      retAnswer "Информацию по заданному городу получить не удалось :("
+      answer "Информацию по заданному городу получить не удалось :("
+      return
     let
       # Парсим ответ сервера
       data = parseJson(await resp.body)

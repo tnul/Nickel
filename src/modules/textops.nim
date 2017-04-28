@@ -59,7 +59,8 @@ module "&#128394;", "Операции с текстом":
     except:
       failed = true
     if failed:
-      retAnswer usage
+      answer usage
+      return
     var count: int
     if converted.len < 1 or converted[0] < 0:
       count = Default

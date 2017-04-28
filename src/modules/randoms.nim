@@ -81,7 +81,8 @@ module "&#9889;", "Случайные числа":
       # Рандомная дата между текущим временем и max
       result = fromSeconds(float(min) + random(1.0) * float(max - min))
     if args.len < 1:
-      retAnswer usage
+      answer usage
+      return
     let date = random(Variants)
     # Шанс примерно 5.8%
     if date == nil:

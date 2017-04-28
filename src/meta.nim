@@ -119,11 +119,3 @@ macro vk*(call: untyped): untyped =
 template answer*(data: string, atch: string = "") {.dirty.} = 
   ## Отвечает пользователю сообщением с текстом $data
   yield api.answer(msg, data, attaches=atch)
-
-template retAnswer*(data: string) {.dirty.} = 
-  ## Отвечает пользователю сообщением с текстом $data и выходит из процедуры
-  answer data
-  return
-
-# dumpTree:
-  # let text = msg.cmd.args.join(" ")
