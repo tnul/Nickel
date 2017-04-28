@@ -66,6 +66,7 @@ macro command*(cmds: varargs[string], body: untyped): untyped =
     const cmds = `cmds`
     # Call proc.handle(cmds) from command.nim
     handle(`uniqName`, cmds)
+
 macro module*(names: varargs[string], body: untyped): untyped = 
   # Add 
   modules.add names.mapIt(it.strVal).join(" ")

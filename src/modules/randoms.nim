@@ -84,8 +84,8 @@ module "&#9889;", "Случайные числа":
       answer usage
       return
     let date = random(Variants)
-    # Шанс примерно 15%
-    if random(100) < 15:
+    # Шанс примерно 35%
+    if random(100) < 35:
       let 
         rdate = randomDate().getGMTime()
         day = $(int(rdate.weekday) + 1)

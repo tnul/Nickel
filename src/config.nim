@@ -6,7 +6,9 @@ import log
 const 
   DefaultSettings = """[Auth]
 token = ""  # Введите тут свой токен от группы
-
+# Или, вместо token, можно ввести свой логин и пароль:
+login = ""
+password = ""
 [Bot]
 messages = True  # Нужно ли логгировать сообщения? True/False
 commands = True  # Нужно ли логгировать команды? True/False
@@ -47,16 +49,18 @@ proc parseConfig*(): BotConfig =
       data = loadConfig("settings.ini")
       config = BotConfig(
         token: data.getSectionValue("Auth", "token"),
-        logMessages: data.getSectionValue("Bot", "messages").parseBool(),
-        logCommands: data.getSectionValue("Bot", "commands").parseBool(),
-        convertText: data.getSectionValue("Bot", "try_convert").parseBool(),
-        reportErrors: data.getSectionValue("Errors", "report_errors").parseBool(),
-        fullReport: data.getSectionValue("Errors", "full_errors").parseBool(),
-        logErrors: data.getSectionValue("Errors", "log_errors").parseBool(),
+        login: data.getSectionValue("Auth", "login"),
+        password: data.getSectionValue("Auth", "password"),
+        logMessages: data.getSectionValue("Bot", "messages").parseBool,
+        logCommands: data.getSectionValue("Bot", "commands").parseBool,
+        convertText: data.getSectionValue("Bot", "try_convert").parseBool,
+        reportErrors: data.getSectionValue("Errors", "report_errors").parseBool,
+        fullReport: data.getSectionValue("Errors", "full_errors").parseBool,
+        logErrors: data.getSectionValue("Errors", "log_errors").parseBool,
         errorMessage: data.getSectionValue("Messages", "on_error")
       )
-
-    if config.token == "":
+    # Если в конфиге нет токена, или логин или пароль пустые - ошибка
+    if config.token == "" and (config.login == "" or config.password == ""):
       logError(NoTokenMessage)
       quit(1)
     logWarning(LoadMessage)

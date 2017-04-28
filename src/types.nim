@@ -30,7 +30,7 @@ type
     doneAttaches*: seq[Attachment]  # Приложения к сообщению
   
   BotConfig* = object
-    token*: string
+    token*, login*, password*: string
     logMessages*: bool
     logCommands*: bool
     convertText*: bool

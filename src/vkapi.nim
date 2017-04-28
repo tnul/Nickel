@@ -3,9 +3,21 @@ import types
 import log
 import utils
 
-const 
-  MaxRPS: byte = 3
-  SleepTime = 350
+const
+  # Для авторизации от имени пользователя, данные официального приложения ВК
+  AuthScope = "all"
+  ClientId = "2274003"
+  ClientSecret = "hHbZxrka2uZ6jB1inYsH"
+
+proc encodePost(params: StringTableRef): string = 
+  result = ""
+  # Кодируем ключ и значение для URL
+  if params != nil:
+    for key, val in pairs(params):
+      let 
+        enck = cgi.encodeUrl(key)
+        encv = cgi.encodeUrl(val)
+      result.add($enck & "=" & $encv & "&")
 
 proc postData*(client: AsyncHttpClient, url: string, params: StringTableRef):
                                     Future[AsyncResponse] {.async.} =
@@ -22,23 +34,29 @@ proc postData*(client: AsyncHttpClient, url: string, params: StringTableRef):
   return await client.post(url, body=data)
 
 
-proc newApi*(token = ""): VkApi =
+proc newApi*(config: BotConfig): VkApi =
   ## Создаёт новый объект VkAPi и возвращает его
-  return VkApi(token: token)
+  # Авторизуемся от имени пользователя
+  if config.login != "" and config.password != "":
+    let authParams = {"client_id": ClientId, 
+                      "client_secret": ClientSecret, 
+                      "grant_type": "password", 
+                      "username": config.login, 
+                      "password": config.password, 
+                      "scope": "all", 
+                      "v": "5.60"}.toApi
+    let 
+      client = newHttpClient()
+      body = encodePost(authParams)
+      result = client.postContent("https://oauth.vk.com/token", body=body)
+      authToken = result.parseJson()["access_token"].str
+    return VkApi(token: authToken)
+  else:    
+    return VkApi(token: config.token)
 
 proc setToken*(api: VkApi, token: string) =
   ## Устанавливает токен для использования в API запросах
   api.token = token
-
-
-proc apiLimiter(api: VkApi) {.async.} =
-  ## Увеличивает кол-во запущенных запросов, ждёт SleepTime мс, и уменьшает
-  ## кол-во запущенных запросов
-  ## Сделано для ограничения 3 запросов в секунду(350*3 = 1150 - на всякий случай)
-  inc(api.reqCount)
-  await sleepAsync(SleepTime)
-  dec(api.reqCount)
-
 
 proc callMethod*(api: VkApi, methodName: string, params: StringTableRef = nil,
         needAuth = true, flood = false): Future[JsonNode] {.async.} =

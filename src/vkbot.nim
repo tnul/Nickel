@@ -108,7 +108,7 @@ proc processLpMessage(bot: VkBot, event: seq[JsonNode]) {.async.} =
 proc newBot(config: BotConfig): VkBot =
   ## Возвращает новый объект VkBot на основе токена
   let
-    api = newApi(config.token)
+    api = newApi(config)
     lpData = LongPollData()
   return VkBot(api: api, lpData: lpData, config: config)
 
