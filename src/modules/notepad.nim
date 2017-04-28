@@ -1,8 +1,6 @@
 include base
 import times
 
-
-const Usage = "Введите подкоманду - `покажи` или `запиши` [строка]"
 # Тут хранятся блокноты пользователей (без перезапуска)
 var savedData = newStringTable()
 
@@ -25,27 +23,26 @@ module "&#128221;", "Блокнот":
              "блокнот покажи - показать записанные выражения"]
     # Если у нас нет аргументов
     if args.len < 1:
-      await api.answer(msg, Usage)
-      return
+      retAnswer(usage)
     # Получаем подкоманду
     case args[0]
     of "покажи":
       # Отдаём то, что у нас сохранено в памяти
       let data = restore($msg.pid)
-      if likely(len(data) > 1):
-        await api.answer(msg, data)
+      if data != "":
+        answer data
       else:
-        await api.answer(msg, "Я ничего не вспомнил")
+        answer "Я ничего не вспомнил"
     of "запиши":
       # Если меньше двух аргументов - значит нам не прислали саму инфу
       if unlikely(len(args) < 2):
-        await api.answer(msg, "Что нужно записать в блокнот?")
+        answer "Что нужно записать в блокнот?"
         return
       else:
         # Получаем данные для сохранения и сохраняем их
         let info = args[1..^1].join(" ")
         # Добавлям данные
         add($msg.pid, "\n\n" & utils.getMoscowTime() & " по МСК" & "\n" & info)
-        await api.answer(msg, "Таааак... Всё, записал!")
+        answer "Таааак... Всё, записал!"
     else:
-      await api.answer(msg, Usage)
+      answer usage

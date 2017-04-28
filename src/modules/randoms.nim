@@ -3,6 +3,9 @@ import sequtils
 import macros
 import times
 
+template twoChoices(a, b: untyped): untyped = 
+  if random(2) == 0: a else: b
+
 module "&#9889;", "Случайные числа":
   command "рандом":
     usage = ["рандом <$1> <$2> - случайное число в диапазоне $1-$2", 
@@ -20,12 +23,12 @@ module "&#9889;", "Случайные числа":
     
     # Если конвертировать не получилось
     if len(failMsg) > 0:
-      await api.answer(msg, failMsg)
+      answer failMsg
       return
     
     # Проверяем, если хоть один аргумент ниже нуля
     if intArgs.anyIt(it <= 0):
-      await api.answer(msg, "Одно из чисел меньше нуля!")
+      answer "Одно из чисел меньше нуля!"
       return
     # Два аргумента - начало и конец диапазона  
     if len(intArgs) == 2:
@@ -43,20 +46,20 @@ module "&#9889;", "Случайные числа":
     elif len(intArgs) == 1:
       rndNumber = random(intArgs[0])
     
-    await api.answer(msg, "Моё число - " & $rndNumber)
+    answer "Моё число - " & $rndNumber
   
   command "кубик", "кость":
     usage = "кубик - случайное число от 1 до 6, как настоящий игральный кубик"
     let rndNumber = random(5) + 1
-    await api.answer(msg, "&#127922; Выпал кубик с числом " & $rndNumber)
+    answer "&#127922; Выпал кубик с числом " & $rndNumber
   
   command "монетка", "монета":
     usage = "монетка - подбросить монетку (может выпасть орёл или решка)"
-    await api.answer(msg, if random(2) == 0: "орёл" else: "решка")
+    answer twoChoices("орёл", "решка"))
   
   command "оцени":
     usage = "оцени - оценить что-то по шкале от 1 до 10"
-    await api.answer(msg, $(random(10)+1) & "/10")
+    answer $(random(10)+1) & "/10")
   
   command "когда":
     usage = "когда - узнать, когда произойдёт данное событие"
@@ -75,22 +78,27 @@ module "&#9889;", "Случайные числа":
       let 
         min = getTime()
         max = fromSeconds(1893456000)  # 01.01.2030
+      # Рандомная дата между текущим временем и max
       result = fromSeconds(float(min) + random(1.0) * float(max - min))
     if args.len < 1:
-      await api.answer(msg, usage)
-      return
+      retAnswer usage
     let date = random(Variants)
+    # Шанс примерно 5.8%
     if date == nil:
       let 
         rdate = randomDate().getGMTime()
         day = $int rdate.weekday
         month = $Months[int rdate.month]
         year = $rdate.year
-        answer = "Это событие произойдёт $1 $2 $3 года" % [day, month, year]
-      await api.answer(msg, answer)
+        strDate = "Это событие произойдёт $1 $2 $3 года" % [day, month, year]
+      answer strDate
     else:
-      await api.answer(msg, date)
+      answer date
   
   command "топ":
     usage = "топ - узнать, топ ли это"
-    await api.answer(msg, if random(2) == 0: "не топ" else: "топ")
+    answer twoChoices("не топ", "топ")
+  
+  command "да?", "нет?":
+    usage = "да?, нет? - узнать ответ на вопрос"
+    answer twoChoices("Да", "Нет")

@@ -5,7 +5,7 @@ const
   DefaultCity = "Москва"
   # Очень желательно сменить этот ключ на свой!
   Key = "78b50ffaf45be011ccc5fccca4d836d8"
-  BaseURL = "http://api.openweathermap.org/data/2.5/"
+  ForecastUrlFormat = "http://api.openweathermap.org/data/2.5/forecast/daily?APPID=$1&lang=ru&q=$2&cnt=$3"
   ResultFormat = """$1:
 $2
 Температура: $3 °C
@@ -26,7 +26,7 @@ module "&#127782;", "Погода":
       client = newAsyncHttpClient()
     var 
       city = DefaultCity
-      days = 1
+      days = 0
       url: string
     
     if args.len > 0:
@@ -40,19 +40,18 @@ module "&#127782;", "Погода":
       if possibleCity != "":
         city = unicode.toLower(possibleCity)
     
-    url = BaseURL & "forecast/daily?APPID=$1&lang=ru&q=$2&cnt=$3" % [Key, city, $(days+1)]
+    url = ForecastUrlFormat % [Key, city, $(days+1)]
     let resp = await client.get(url)
     # Если сервер не нашёл этот город
     if resp.code != HttpCode(200):
-      await api.answer(msg, "Информацию по заданному городу получить не удалось :(")
-      return
-    
+      retAnswer "Информацию по заданному городу получить не удалось :("
     let
       # Парсим ответ сервера
       data = parseJson(await resp.body)
       # День - последний элемент из массива
       day = data["list"].getElems[^1]
-      # Конвертируем температуру по Фаренгейту в Цельсии, округляем и переводим в int
+      # Конвертируем температуру по Фаренгейту в Цельсии, 
+      # округляем и переводим в int
       temp = int round day["temp"]["day"].getFNum - 273
       # Влажность
       humidity = int round day["humidity"].getFNum
@@ -68,5 +67,5 @@ module "&#127782;", "Погода":
       localTime = fromSeconds(date).getGMTime().format("d'.'MM'.'yyyy")
       # Составляем строку-результат
       info = ResultFormat % [localTime, desc, $temp, $humidity, $cloud, $wind]
-    await api.answer(msg, info)
+    answer info
 

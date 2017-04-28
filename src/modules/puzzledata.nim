@@ -13,9 +13,9 @@ let
 module "&#128161;", "Интересные факты":
   command "факт", "факты":
     usage = "факт - отправляет интересный факт"
-    await api.answer(msg, random(facts))
+    answer random(facts)
 
 module "Случайные загадки":
   command "загадка", "загадай":
     usage = "загадка - отправляет случайную загадку с ответом"
-    await api.answer(msg, random(puzzle))
+    answer random(puzzle)

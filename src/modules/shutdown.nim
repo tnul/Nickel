@@ -10,8 +10,8 @@ const AdminUid = 170831732
 command "выключись", "выключение":
   # Проверяем PeerId, если оно совпадает с ID админа - выключаемся
   if msg.pid == AdminUid:
-    await api.answer(msg, "Выключаюсь...")
+    answer "Выключаюсь..."
     echo("Выключение по запросу администратора https://vk.com/id" & $msg.pid)
     quit(0)
   else:
-    await api.answer(msg, "Извините, но у меня другой администратор :)")
+    answer "Извините, но у меня другой администратор :)"

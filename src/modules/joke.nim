@@ -40,6 +40,6 @@ module "&#128175;", "Анекдоты":
     let joke = await getJoke()
     # Если удалось получить анекдот
     if joke != "":
-      await api.answer(msg, random(Answers) & "\n\n" & joke)
+      answer random(Answers) & "\n\n" & joke
     else:
-      await api.answer(msg, "Извини, но у меня шутилка сломалась :(")
+      answer "Извини, но у меня шутилка сломалась :("

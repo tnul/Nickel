@@ -46,25 +46,26 @@ macro command*(cmds: varargs[string], body: untyped): untyped =
   # Increment counter for unique procedure names
   inc count
   
-  let 
+  let
+    # Create new ident nodes to be sure Nim would not mangle our variables
     api = newIdentNode("api")
     msg = newIdentNode("msg")
-    # Make usage nim node, so we can use "usage" inside of the actual body
-    usageConst = newConstStmt(newIdentNode("usage"), newStrLitNode(usage))
-    # Also add `args` for easy usage 
-    argsLet = newLetStmt(newIdentNode("args"), newDotExpr(
-      newDotExpr(msg, newIdentNode("cmd")), newIdentNode("args")
-    ))
-  procBody.insert(0, usageConst)
-  procBody.insert(0, argsLet)
+    procUsage = newIdentNode("usage")
+    args = newIdentNode("args")
+    text = newIdentNode("text")
   result = quote do:
     proc `uniqName`(`api`: VkApi, `msg`: Message) {.async.} = 
+      # Add "usage" so we can use usage inside of proc body
+      const `procUsage` = `usage`
+      # Simpler shortcut to "msg.cmd.args"
+      let `args` = `msg`.cmd.args
+      # Some modules need to get text, not arguments
+      let `text` = `msg`.cmd.args.join(" ")
       `procBody`
     # Commands for this handler
     const cmds = `cmds`
     # Call proc.handle(cmds) from command.nim
     handle(`uniqName`, cmds)
-
 macro module*(names: varargs[string], body: untyped): untyped = 
   # Add 
   modules.add names.mapIt(it.strVal).join(" ")
@@ -114,3 +115,18 @@ macro vk*(call: untyped): untyped =
     tabl.add(colonExpr)
   result = quote do:
     api.callMethod(`methodStr`, params=`tabl`.toApi)
+
+template answer*(data: string, attaches: string = "") {.dirty.} = 
+  ## Отвечает пользователю сообщением с текстом $data
+  when attaches != "":
+    yield api.answer(msg, data, attaches=attaches)
+  else:
+    yield api.answer(msg, data)
+
+template retAnswer*(data: string) {.dirty.} = 
+  ## Отвечает пользователю сообщением с текстом $data и выходит из процедуры
+  answer(data)
+  return
+
+# dumpTree:
+  # let text = msg.cmd.args.join(" ")

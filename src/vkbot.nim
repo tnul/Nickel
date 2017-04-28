@@ -18,7 +18,7 @@ var running = false
 proc getLongPollUrl(bot: VkBot) =
   ## Получает URL для Long Polling на основе данных, полученных ботом
   const 
-    UrlFormat = "https://$1?act=a_check&key=$2&ts=$3&wait=5&mode=2&version=1"
+    UrlFormat = "https://$1?act=a_check&key=$2&ts=$3&wait=25&mode=2&version=1"
   let
     data = bot.lpData
   bot.lpUrl = UrlFormat % [data.server, data.key, $data.ts]
@@ -26,7 +26,7 @@ proc getLongPollUrl(bot: VkBot) =
 proc processCommand(body: string): Command =
   ## Обрабатывает строку {body} и возвращает тип Command
   # Если тело сообщения пустое
-  if len(body) == 0:
+  if body.len == 0:
     return
   # Делим тело сообщения на части
   let values = body.split()
@@ -128,6 +128,7 @@ proc getLongPollApi(api: VkApi): Future[JsonNode] {.async.} =
 proc initLongPolling(bot: VkBot, failNum = 0) {.async.} =
   ## Инициализирует данные или обрабатывает ошибку Long Polling сервера
   let data = await bot.api.getLongPollApi()
+  echo failNum
   # Смотрим на код ошибки
   case int(failNum)
     # Первый запуск бота
@@ -154,7 +155,7 @@ proc initLongPolling(bot: VkBot, failNum = 0) {.async.} =
 proc mainLoop(bot: VkBot) {.async.} =
   ## Главный цикл бота (тут происходит получение новых событий)
   running = true
-  var http = newAsyncHttpClient()
+  let http = newAsyncHttpClient()
 
   while running:
     # Получаем новый URL для лонг пуллинга
@@ -163,9 +164,8 @@ proc mainLoop(bot: VkBot) {.async.} =
     let request = http.getContent(bot.lpUrl)
     yield request
     if request.failed:
-      var http = newAsyncHttpClient()
-      echo bot.lpURL
       echo getCurrentExceptionMsg()
+      await sleepAsync(1000)
       continue
     let
       # Парсим ответ сервера в JSON

@@ -9,12 +9,15 @@ const
 module "&#128202;", "Калькулятор":
   command "калькулятор", "посчитай", "calc", "посчитать":
     usage = "калькулятор <выражение> - посчитать математическое выражение"
-    let 
-      expression = args.join(" ")  # Получаем строку - выражение
-      answer = teAnswer(expression)  # Получаем результат
+    if text == "":
+      # Посылаем пользователю строку usage и выходим из обработки
+      retAnswer usage
+    let
+      # Получаем результат
+      answer = teAnswer(text) 
     # Если произошла ошибка при вычислении
-    if unlikely(answer == ""):
-      await api.answer(msg, FailMsg)
+    if answer == "":
+      answer FailMsg
     else:
       # Отправляем результат выражения
-      await api.answer(msg, expression & " = " & answer)
+      answer text & " = " & answer

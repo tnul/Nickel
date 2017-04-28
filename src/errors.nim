@@ -6,14 +6,14 @@ proc runCatch*(exec: ModuleFunction, bot: VkBot, msg: Message) =
   future.callback =
     # Анонимная функция
     proc () =
-      # Если процедура не сфейлилась - всё норм
+      # Если future завершилась без ошибок - всё хорошо
       if not future.failed:
         return
-      # Ввызываем эту же ошибку для того, чтобы её поймать
+      # Если же есть ошибка, вызываем её, чтобы поймать
       try:
         raise future.error
       except:
-        # Рандомные буквы
+        # Анти-флуд
         let rnd = antiFlood() & "\n"
         # Сообщение, котороые мы пошлём
         var errorMessage = rnd & bot.config.errorMessage & "\n"

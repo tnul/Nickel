@@ -26,18 +26,16 @@ const
 module "&#128394;", "Операции с текстом":
   command "перечеркни", "зачеркни":
     usage = "зачеркни <строка> - перечеркнуть строку"
-    let text = args.join(" ")
     if text == "":
-      await api.answer(msg, "перечеркни <строка> - перечеркнуть строку")
+      answer "перечеркни <строка> - перечеркнуть строку"
     else:
       var res = ""
       for x in utf8(text):
         res.add x & "&#38;#0822;"
-      await api.answer(msg, res)
+      answer res
   
   command "переверни":
     usage = "переверни <строка> - перевернуть строку"
-    let text = msg.cmd.args.join(" ")
     proc replace(data: string): string = 
       result = ""
       for letter in unicode.toLower(data.reversed).utf8:
@@ -45,7 +43,7 @@ module "&#128394;", "Операции с текстом":
           result &= FlipTable[letter]
         else: 
           result &= letter
-    await api.answer(msg, text.replace())
+    answer text.replace()
     
   command "лол":
     usage = "лол <кол-во> - генерирует смех определённой длины из символов АЗХ"
@@ -61,8 +59,7 @@ module "&#128394;", "Операции с текстом":
     except:
       failed = true
     if failed:
-      await api.answer(msg, usage)
-      return
+      retAnswer usage
     var count: int
     if converted.len < 1 or converted[0] < 0:
       count = Default
@@ -70,4 +67,4 @@ module "&#128394;", "Операции с текстом":
       count = Max
     else:
       count = converted[0]
-    await api.answer(msg, LolWord.repeat(count))
+    answer LolWord.repeat(count)

@@ -9,4 +9,4 @@ const
 module "&#128222;", "Приветствие":
   command "привет", "ку", "прив", "хей", "хэй", "qq":
     usage = "привет - поприветствовать пользователя"
-    await api.answer(msg, random(Greetings))
+    answer random(Greetings)
