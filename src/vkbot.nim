@@ -128,7 +128,7 @@ proc getLongPollApi(api: VkApi): Future[JsonNode] {.async.} =
 proc initLongPolling(bot: VkBot, failNum = 0) {.async.} =
   ## Инициализирует данные или обрабатывает ошибку Long Polling сервера
   let data = await bot.api.getLongPollApi()
-  echo failNum
+  # echo failNum
   # Смотрим на код ошибки
   case int(failNum)
     # Первый запуск бота
