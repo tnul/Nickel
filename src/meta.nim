@@ -116,16 +116,13 @@ macro vk*(call: untyped): untyped =
   result = quote do:
     api.callMethod(`methodStr`, params=`tabl`.toApi)
 
-template answer*(data: string, attaches: string = "") {.dirty.} = 
+template answer*(data: string, atch: string = "") {.dirty.} = 
   ## Отвечает пользователю сообщением с текстом $data
-  when attaches != "":
-    yield api.answer(msg, data, attaches=attaches)
-  else:
-    yield api.answer(msg, data)
+  yield api.answer(msg, data, attaches=atch)
 
 template retAnswer*(data: string) {.dirty.} = 
   ## Отвечает пользователю сообщением с текстом $data и выходит из процедуры
-  answer(data)
+  answer data
   return
 
 # dumpTree:

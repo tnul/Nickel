@@ -33,7 +33,7 @@ proc giveMemes(api: VkApi, msg: Message, groupId: string) {.async.} =
       # Access key может понадобиться, если группа закрытая 
       accessKey = photo["access_key"].str
       attachment = "photo$1_$2_$3" % [oid, attachId, accessKey]
-    answer(random(Answers), attaches = attachment)
+    answer(random(Answers), atch = attachment)
 
 module "﷽", "Двач - случайные мемы с двача или из https://vk.com/hard_ps":
   command "двач", "2ch":
