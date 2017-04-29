@@ -36,8 +36,9 @@ proc postData*(client: AsyncHttpClient, url: string, params: StringTableRef):
 
 proc newApi*(config: BotConfig): VkApi =
   ## Создаёт новый объект VkAPi и возвращает его
-  # Авторизуемся от имени пользователя
-  if config.login != "" and config.password != "":
+  
+  if config.login != "":
+    # Если в конфигурации авторизация от пользователя
     let authParams = {"client_id": ClientId, 
                       "client_secret": ClientSecret, 
                       "grant_type": "password", 
@@ -47,11 +48,15 @@ proc newApi*(config: BotConfig): VkApi =
                       "v": "5.60"}.toApi
     let 
       client = newHttpClient()
+      # Кодируем параметры через url encode
       body = encodePost(authParams)
-      result = client.postContent("https://oauth.vk.com/token", body=body)
-      authToken = result.parseJson()["access_token"].str
+      # Посылаем запрос
+      data = client.postContent("https://oauth.vk.com/token", body=body)
+      # Получаем наш authToken
+      authToken = data.parseJson()["access_token"].str
     return VkApi(token: authToken)
-  else:    
+  else:
+    # Иначе -  
     return VkApi(token: config.token)
 
 proc setToken*(api: VkApi, token: string) =
@@ -88,16 +93,16 @@ proc callMethod*(api: VkApi, methodName: string, params: StringTableRef = nil,
   else:
     let error = data.getOrDefault("error")
     # Если есть какая-то ошибка
-    if likely(error != nil):
+    if error != nil:
       case int(error["error_code"].getNum()):
-        # Flood error - слишком много одинаковых сообщений
-        of 9:
-          # await api.apiLimiter()
-          return await callMethod(api, methodName, params, needAuth, flood = true)
-        else:
-          logError("Ошибка при вызове " & methodName & "\n" & $data)
-          # Возвращаем пустой JSON объект
-          return  %*{}
+      # Flood error - слишком много одинаковых сообщений
+      of 9:
+        # await api.apiLimiter()
+        return await callMethod(api, methodName, params, needAuth, flood = true)
+      else:
+        logError("Ошибка при вызове $1 - $2\n$3" % [methodName, error["error_msg"].str, $data])
+        # Возвращаем пустой JSON объект
+        return  %*{}
     else:
       return data
 

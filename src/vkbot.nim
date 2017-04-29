@@ -23,15 +23,29 @@ proc getLongPollUrl(bot: VkBot) =
     data = bot.lpData
   bot.lpUrl = UrlFormat % [data.server, data.key, $data.ts]
 
-proc processCommand(body: string): Command =
+proc processCommand(bot: VkBot, body: string): Command =
   ## Обрабатывает строку {body} и возвращает тип Command
   # Если тело сообщения пустое
   if body.len == 0:
     return
-  # Делим тело сообщения на части
-  let values = body.split()
+  # Ищем префикс команды
+  var foundPrefix: string
+  for prefix in bot.config.prefixes:
+    # Если команда начинается с префикса
+    if body.startsWith(prefix):
+      foundPrefix = prefix
+      # Выходим из цикла
+      break
+  # Если мы не нашли префикс - выходим
+  if foundPrefix == nil:
+    return
+  # Получаем команду и аргументы - берём слайс строки body без префикса, 
+  # используем strip для удаления нежелательных пробелов в начале и конце,
+  # делим строку 
+  let values = body[len(foundPrefix)..^1].strip().split()
+  let (name, args) = (values[0], values[1..^1])
   # Возвращаем первое слово из строки в нижнем регистре и аргументы
-  return Command(name: unicode.toLower(values[0]), args: values[1..^1])
+  return Command(name: unicode.toLower(name), args: args)
 
 proc processMessage(bot: VkBot, msg: Message) {.async.} =
   ## Обрабатывает сообщение: логгирует, передаёт события плагинам
@@ -75,7 +89,7 @@ proc processLpMessage(bot: VkBot, event: seq[JsonNode]) {.async.} =
     # Неожиданно, но ВК посылает Long Polling с <br>'ами вместо \n
     msgBody = text.str.replace("<br>", "\n")
     # Обрабатываем строку и создаём объект команды
-    cmd = processCommand(msgBody)
+    cmd = bot.processCommand(msgBody)
     # Создаём объект Message
     message = Message(
       id: int(msgId.getNum()),  # ID сообщения
@@ -173,10 +187,10 @@ proc mainLoop(bot: VkBot) {.async.} =
       # Получаем поле failed (если его нет, получаем nil)
       failed = jsonData.getOrDefault("failed")
     # Если у нас есть поле failed - значит произошла какая-то ошибка
-    if unlikely(failed != nil):
-      let failNum = int(failed.getNum())
+    if failed != nil:
+      let failNum = int failed.getNum()
       if failNum == 1:
-        bot.lpData.ts = int(jsonData["ts"].getNum())
+        bot.lpData.ts = int jsonData["ts"].getNum()
       else:
         await bot.initLongPolling(failNum)
       continue
@@ -213,6 +227,9 @@ proc gracefulShutdown() {.noconv.} =
   quit(0)
 
 when isMainModule:
+  # Если мы на Windows - устанавливаем кодировку UTF-8 при запуске бота
+  when defined(windows):
+    discard execShellCmd("chcp 65001")
   let cfg = parseConfig()
   # Выводим значения конфига (кроме токена)
   cfg.log()
@@ -222,7 +239,7 @@ when isMainModule:
   # может пригодиться в будущем (закрывать сессии к БД и т.д)
   setControlCHook(gracefulShutdown)
   logWithStyle(fgGreen):
-    ("Общее количество команд - " & $len(commands))
+    ("Общее количество загруженных команд - " & $len(commands))
     ("Бот успешно запущен и ожидает новых команд!")
 
   asyncCheck bot.startBot()

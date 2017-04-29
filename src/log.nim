@@ -29,27 +29,30 @@ macro logWithStyle*(style: ForegroundColor, body: untyped): untyped =
   for elem in body:
     result.add quote do:
       `elem`.log(`style`)
-    # Скобки
-    #expectKind elem, nnkPar
-    # Длина - 1 элемент
-    #expectLen elem, 1
-    # Получаем то, что нам нужно вывести
-    
-    # Добавляем выражение к результату
-    #result.add quote do:
-    #  log `style` `toWrite`
 
 system.addQuitProc(resetAttributes)
 
-
 template logError*(data: string) = 
+  ## Логгирует ошибку
   data.log(fgRed)
 
 template logWarning*(data: string) = 
+  ## Логгирует предупреждение
   data.log(fgYellow)
 
 template logSuccess*(data: string) = 
+  ## Логгирует успех
   data.log(fgGreen)
 
 template logHint*(data: string) = 
+  ## Логгирует подсказку
   data.log(fgCyan)
+
+template logFatal*(data: string) = 
+  ## Логгирует ошибку и выключает бота
+  logError(data)
+  # Если мы на Windows - вызываем команду "pause", чтобы окно с ботом не
+  # закрылось сразу, если бот запускался не через консоль, а через GUI
+  when defined(windows):
+    discard execShellCmd("pause")
+  quit(1)

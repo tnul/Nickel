@@ -31,6 +31,7 @@ type
   
   BotConfig* = object
     token*, login*, password*: string
+    prefixes*: seq[string]
     logMessages*: bool
     logCommands*: bool
     convertText*: bool
