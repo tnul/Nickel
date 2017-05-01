@@ -1,6 +1,5 @@
 include baseimports
 import types
-import log
 import utils
 
 const
@@ -69,7 +68,7 @@ proc callMethod*(api: VkApi, methodName: string, params: StringTableRef = nil,
   ## и допольнительным {token}
   const
     BaseUrl = "https://api.vk.com/method/"
-  let 
+  let
     http = newAsyncHttpClient()
     # Если нужна авторизация апи - используем токен апи, иначе - пустой токен
     token = if likely(needAuth): api.token else: ""
@@ -99,8 +98,18 @@ proc callMethod*(api: VkApi, methodName: string, params: StringTableRef = nil,
       of 9:
         # await api.apiLimiter()
         return await callMethod(api, methodName, params, needAuth, flood = true)
+      # Капча
+      of 14:
+        # TODO: Обработка капчи
+        let 
+          sid = error["captcha_sid"].str
+          img = error["captcha_img"].str
+        error("Капча $1 - $2" % [sid, img])
+        params["captcha_sid"] = sid
+        #params["captcha_key"] = key
+        #return await callMethod(api, methodName, params, needAuth)
       else:
-        logError("Ошибка при вызове $1 - $2\n$3" % [methodName, error["error_msg"].str, $data])
+        error("Ошибка при вызове $1 - $2\n$3" % [methodName, error["error_msg"].str, $data])
         # Возвращаем пустой JSON объект
         return  %*{}
     else:

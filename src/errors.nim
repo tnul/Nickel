@@ -22,7 +22,7 @@ proc runCatch*(exec: ModuleFunction, bot: VkBot, msg: Message) =
           errorMessage &= "\n" & getCurrentExceptionMsg()
         if bot.config.logErrors:
           #Если нужно писать ошибки в консоль
-          logError("\n" & getCurrentExceptionMsg())
+          error("\n" & getCurrentExceptionMsg())
         # Отправляем сообщение об ошибке
         if bot.config.reportErrors:
           asyncCheck bot.api.answer(msg, errorMessage)

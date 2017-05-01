@@ -11,5 +11,6 @@ import asyncdispatch  # Асинхронность
 import strtabs  # Для работы с StringTable
 import random  # Для функций рандома
 import tables  # Для некоторых манипуляций во время компиляции
+import logging  # логгирование
 # Рандомизируем вывод рандома (иначе он будет всегда одинаков в каждом запуске)
 randomize()

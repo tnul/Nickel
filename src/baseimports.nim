@@ -12,8 +12,8 @@ import uri  # Для парсинга URL
 import random  # для анти флуда
 import strutils  # Утилиты для работы со строками
 import asyncdispatch  # Асинхронность
-import terminal  # Цветное логгирование и на Windows, и на Linux
+import future  # Экспериментальные функции
 
 # Свои модули
-import log
+import logger
 import types

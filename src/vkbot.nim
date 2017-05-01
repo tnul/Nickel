@@ -9,7 +9,7 @@ import vkapi  # Реализация VK API
 import config # Парсинг файла конфигурации
 import errors  # Обработка ошибок
 import command  # таблица {команда: плагин} и макросы
-import log  # логгирование
+import logger  # логгирование
 importPlugins()  # импортируем все модули из папки 
 
 # Переменная для обозначения, работает ли главный цикл бота
@@ -31,8 +31,8 @@ proc processCommand(bot: VkBot, body: string): Command =
   # Ищем префикс команды
   var foundPrefix: string
   for prefix in bot.config.prefixes:
-    # Если команда начинается с префикса
-    if body.startsWith(prefix):
+    # Если команда начинается с префикса в нижнем регистре
+    if unicode.toLower(body).startsWith(prefix):
       foundPrefix = prefix
       # Выходим из цикла
       break
@@ -41,7 +41,7 @@ proc processCommand(bot: VkBot, body: string): Command =
     return
   # Получаем команду и аргументы - берём слайс строки body без префикса, 
   # используем strip для удаления нежелательных пробелов в начале и конце,
-  # делим строку 
+  # делим строку на имя команды и значения
   let values = body[len(foundPrefix)..^1].strip().split()
   let (name, args) = (values[0], values[1..^1])
   # Возвращаем первое слово из строки в нижнем регистре и аргументы
@@ -51,15 +51,24 @@ proc processMessage(bot: VkBot, msg: Message) {.async.} =
   ## Обрабатывает сообщение: логгирует, передаёт события плагинам
   let 
     cmdText = msg.cmd.name
-    converted = toRus(cmdText)
-    needConvert = (bot.config.convertText and msg.cmd.name != converted)
-  # Если в таблице команд есть эта команда или конвертированная команда
-  if commands.contains(cmdText) or commands.contains(converted) and needConvert:
-    if needConvert:
-      # Изменяем команду в объекте сообщения
-      msg.cmd.name = converted
-      # Так же конвертируем все аргументы
-      msg.cmd.args.applyIt toRus(it)
+    rusConverted = toRus(cmdText)
+    engConverted = toEng(cmdText)
+  var command = false
+  # FIXME: Уменьшить повторение кода в обработке раскладки
+  if commands.contains(cmdText):
+    command = true
+
+  elif commands.contains(rusConverted):
+    msg.cmd.name = rusConverted
+    msg.cmd.args.applyIt it.toRus()
+    command = true
+
+  elif commands.contains(engConverted):
+    msg.cmd.name = engConverted
+    msg.cmd.args.applyIt it.toRus()
+    command = true
+  # Если это команда
+  if command:
     # Если нужно логгировать команды
     if bot.config.logCommands:
       msg.log(command = true)
@@ -96,7 +105,7 @@ proc processLpMessage(bot: VkBot, event: seq[JsonNode]) {.async.} =
       pid: msgPeerId,  # ID отправителя
       timestamp: int(ts.getNum()),  # Когда было отправлено сообщение
       subject: subject.str,  # Тема сообщения
-      cmd: cmd,  # Объект сообщения
+      cmd: cmd,  # Объект сообщения 
       body: text.str,  # Тело сообщения
     )
 
@@ -115,7 +124,7 @@ proc processLpMessage(bot: VkBot, event: seq[JsonNode]) {.async.} =
       errorMessage &= "\n" & getCurrentExceptionMsg()
     if bot.config.logErrors:
       # Если нужно писать ошибки в консоль
-      logError("\n" & getCurrentExceptionMsg())
+      error("\n" & getCurrentExceptionMsg())
     # Отправляем сообщение об ошибке
     await bot.api.answer(message, errorMessage)
 
@@ -142,8 +151,6 @@ proc getLongPollApi(api: VkApi): Future[JsonNode] {.async.} =
 proc initLongPolling(bot: VkBot, failNum = 0) {.async.} =
   ## Инициализирует данные или обрабатывает ошибку Long Polling сервера
   let data = await bot.api.getLongPollApi()
-  # echo failNum
-  # Смотрим на код ошибки
   case int(failNum)
     # Первый запуск бота
     of 0:
@@ -162,28 +169,35 @@ proc initLongPolling(bot: VkBot, failNum = 0) {.async.} =
       bot.lpData.ts = int(data["ts"].getNum())
     else:
       discard
-
   # Обновляем URL Long Polling'а
   bot.getLongPollUrl()
 
 proc mainLoop(bot: VkBot) {.async.} =
   ## Главный цикл бота (тут происходит получение новых событий)
   running = true
-  let http = newAsyncHttpClient()
-
+  var http = newAsyncHttpClient()
   while running:
     # Получаем новый URL для лонг пуллинга
     bot.getLongPollUrl()
-    # Получаем ответ от сервера ВК
-    let request = http.getContent(bot.lpUrl)
-    yield request
-    if request.failed:
-      echo getCurrentExceptionMsg()
-      await sleepAsync(1000)
+    # Создаём запрос
+    let req = http.getContent(bot.lpUrl)
+    # Отправляем его
+    yield req
+    # Если произошла ошибка
+    if req.failed:
+      debug("Запрос к LP не удался, создаю новый объект HTTP клиента...")
+      GC_fullCollect()
+      #[Из-за бага стандартной библиотеки, если иметь 1 http клиент, он
+      крашится через 20-30 минут работы, поэтому мы инициализируем новый
+      клиент при каждой ошибке. Но это не ухудшает
+      производительность, так как newAsyncHttpClient() можно вызывать
+      примерно миллион раз в секунду, а мы его вызываем раз в 10-25 минут]#
+      http = newAsyncHttpClient()
+      await sleepAsync(500)
       continue
     let
       # Парсим ответ сервера в JSON
-      jsonData = parseJson(request.read())
+      jsonData = parseJson(req.read)
       # Получаем поле failed (если его нет, получаем nil)
       failed = jsonData.getOrDefault("failed")
     # Если у нас есть поле failed - значит произошла какая-то ошибка
@@ -209,7 +223,6 @@ proc mainLoop(bot: VkBot) {.async.} =
         # Другие события нам пока что не нужны :)
         else:
           discard
-
     # Обновляем метку времени
     bot.lpData.ts = int(jsonData["ts"].getNum())
     
@@ -221,7 +234,7 @@ proc startBot(bot: VkBot) {.async.} =
 
 proc gracefulShutdown() {.noconv.} =
   ## Выключает бота с ожиданием 500мс (срабатывает на Ctrl+C)
-  logHint("Выключение бота...")
+  notice("Выключение бота...")
   running = false
   sleep(500)
   quit(0)
@@ -238,7 +251,7 @@ when isMainModule:
   # Устанавливаем хук на Ctrl+C, пока что бесполезен, но
   # может пригодиться в будущем (закрывать сессии к БД и т.д)
   setControlCHook(gracefulShutdown)
-  logWithStyle(fgGreen):
+  logWithLevel(lvlInfo):
     ("Общее количество загруженных команд - " & $len(commands))
     ("Бот успешно запущен и ожидает новых команд!")
 
