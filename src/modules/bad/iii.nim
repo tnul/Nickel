@@ -49,8 +49,10 @@ proc chat(ses: string, msg: string): Future[string] {.async.} =
 var 
   sessions = initTable[string, string]()
 
+# В данный момент поддержка iii сломана
+#[
 module "&#128172;", "Бот iii.ru":
-  command "сеть", "iii", "б":
+  command "сеть", "iii", "инф":
     usage = "сеть <текст> - отправить боту сообщение"
     let
       uid = $msg.pid
@@ -58,3 +60,4 @@ module "&#128172;", "Бот iii.ru":
       sessions[uid] = await init(uid)
     let sess = sessions[uid]
     answer(await sess.chat(text))
+]#

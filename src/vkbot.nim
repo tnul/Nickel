@@ -15,6 +15,7 @@ importPlugins()  # импортируем все модули из папки
 # Переменная для обозначения, работает ли главный цикл бота
 var running = false
 
+
 proc getLongPollUrl(bot: VkBot) =
   ## Получает URL для Long Polling на основе данных, полученных ботом
   const 
@@ -133,6 +134,7 @@ proc newBot(config: BotConfig): VkBot =
   let
     api = newApi(config)
     lpData = LongPollData()
+  asyncCheck api.executeCaller()
   return VkBot(api: api, lpData: lpData, config: config)
 
 

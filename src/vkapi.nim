@@ -1,12 +1,14 @@
 include baseimports
 import types
 import utils
-
+import sequtils
+import queues
 const
   # Для авторизации от имени пользователя, данные официального приложения ВК
   AuthScope = "all"
   ClientId = "2274003"
   ClientSecret = "hHbZxrka2uZ6jB1inYsH"
+
 
 proc encodePost(params: StringTableRef): string = 
   result = ""
@@ -35,7 +37,6 @@ proc postData*(client: AsyncHttpClient, url: string, params: StringTableRef):
 
 proc newApi*(config: BotConfig): VkApi =
   ## Создаёт новый объект VkAPi и возвращает его
-  
   if config.login != "":
     # Если в конфигурации авторизация от пользователя
     let authParams = {"client_id": ClientId, 
@@ -62,10 +63,29 @@ proc setToken*(api: VkApi, token: string) =
   ## Устанавливает токен для использования в API запросах
   api.token = token
 
+
+proc toExecute(methodName: string, params: StringTableRef): string {.inline.} = 
+  let
+    # Получаем последовательность из параметров вызовы
+    pairsSeq = toSeq(params.pairs)
+    # Составляем последовательность аргументов к вызову API
+    keyValSeq = pairsSeq.mapIt("\"$1\":\"$2\"" % [it.key, it.value.replace("\n", "<br>")])
+  # Возвращаем полный вызов к API с именем метода и параметрами
+  return "API." & methodName & "({" & keyValSeq.join(", ") & "})"
+
+type
+  # Кортеж для обозначения нашего запроса к API через Execute
+  MethodCall = tuple[myFut: Future[JsonNode], 
+                     name: string,
+                     params: StringTableRef]
+
+# Создаём очередь запросов (по умолчанию делаем её из 32 элементов)
+var requests = initQueue[MethodCall](32)
+
 proc callMethod*(api: VkApi, methodName: string, params: StringTableRef = nil,
-        needAuth = true, flood = false): Future[JsonNode] {.async.} =
+        needAuth = true, flood = false, useExecute = true): Future[JsonNode] {.async.} =
   ## Отправляет запрос к методу {methodName} с параметрами  {params} типа JsonNode
-  ## и допольнительным {token}
+  ## и допольнительным {token} (по умолчанию - через execute)
   const
     BaseUrl = "https://api.vk.com/method/"
   let
@@ -74,23 +94,34 @@ proc callMethod*(api: VkApi, methodName: string, params: StringTableRef = nil,
     token = if likely(needAuth): api.token else: ""
     # Создаём URL
     url = BaseUrl & "$1?access_token=$2&v=5.63&" % [methodName, token]
+  # Переменная, в которую записывается ответ от API в JSON
+  var jsonData: JsonNode
+  # Если нужно использовать execute
+  if likely(useExecute):
+    # Создаём future для получения информации
+    let myFut = newFuture[JsonNode]("callMethod")
+    # Добавляем его в очередь запросов
+    requests.add((myFut, methodName, params))
+    # Ожидаем результата
+    jsonData = await myFut
+  # Иначе - обычный вызов API
+  else:
+    # Отправляем запрос к API
+    let req = await http.postData(url, params)
+    # Получаем ответ
+    let resp = await req.body
+    # Если была ошибка о флуде, добавляем анти-флуд
+    if flood:
+      params["message"] = antiFlood() & "\n" & params["message"]
+    jsonData = parseJson(resp)
   
-  # Если была ошибка о флуде, добавляем анти-флуд
-  if flood:
-    params["message"] = antiFlood() & "\n" & params["message"]
-  
-  # await api.apiLimiter()
-  let 
-    resp = await http.postData(url, params)
-    # Парсим ответ от VK API в JSON
-    data = parseJson(await resp.body)
-    response = data.getOrDefault("response") 
+  let response = jsonData.getOrDefault("response") 
   # Если есть секция response - нам нужно вернуть ответ из неё
   if likely(response != nil):
     return response
   # Иначе - проверить на ошибки, и просто вернуть ответ, если всё хорошо
   else:
-    let error = data.getOrDefault("error")
+    let error = jsonData.getOrDefault("error")
     # Если есть какая-то ошибка
     if error != nil:
       case int(error["error_code"].getNum()):
@@ -109,11 +140,41 @@ proc callMethod*(api: VkApi, methodName: string, params: StringTableRef = nil,
         #params["captcha_key"] = key
         #return await callMethod(api, methodName, params, needAuth)
       else:
-        error("Ошибка при вызове $1 - $2\n$3" % [methodName, error["error_msg"].str, $data])
+        error("Ошибка при вызове $1 - $2\n$3" % [methodName, error["error_msg"].str, $jsonData])
         # Возвращаем пустой JSON объект
         return  %*{}
     else:
-      return data
+      return jsonData
+
+proc executeCaller*(api: VkApi) {.async.} = 
+  ## Бесконечный цикл, проверяет последовательность requests
+  while true:
+    # Спим 350 мс
+    await sleepAsync(350)
+    # Если в очереди нет элементов
+    if requests.len == 0:
+      continue
+    # Последовательность вызовов API в виде VKScript
+    var items: seq[string] = @[]
+    # Последовательность future
+    var futures: seq[Future[JsonNode]] = @[]
+    # Пока мы не опустошим нашу очередь
+    while requests.len != 0:
+      # Получаем самый старый элемент
+      let (fut, name, params) = requests.pop()
+      # Добавляем в items его вызов в виде строки VKScript
+      items.add name.toExecute(params)
+      futures.add(fut)
+    # Составляем код VK Script
+    let code = "return [" & items.join(", ") & "];"
+    # Отправляем запрос execute`
+    let answer = await api.callMethod("execute", {"code": code}.toApi, useExecute = false)
+    # Проходимся по результату и futures
+    for data in zip(answer.getElems(), futures):
+      let (item, fut) = data
+      # Завершаем future с результатом
+      fut.complete(item)
+
 
 proc attaches* (msg: Message, vk: VkApi): Future[seq[Attachment]] {.async.} =
   ## Получает аттачи сообщения {msg} используя объект API - {vk}

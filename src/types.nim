@@ -42,7 +42,6 @@ type
   
   VkApi* = ref object
     token*: string  # Токен VK API
-    reqCount*: byte
 
   
   VkBot* = ref object
