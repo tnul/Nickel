@@ -12,16 +12,15 @@ proc encodeGet(params: StringTableRef): string =
       result.add($enck & "=" & $encv & "&")
 
 proc find(query: string): Future[string] {.async.} =
-  ## Searches string $terms on Wikipedia and returns sequence 
-  ## of suggested articles 
+  ## Ищёт строку $terms на Wikipedia и возвращает первую из возможных статей
   let
-    # Params for API call
+    # Параметры для вызовы API
     searchParams = {"action": "opensearch", 
                     "search": query, 
                     "format": "json"}.newStringTable()
-    # Encode our params
+    # Кодируем наши параметры
     urlQuery = encodeGet(searchParams)
-    # Make an URL
+    # Создаём URL
     url = "https://ru.wikipedia.org/w/api.php$1" % [urlQuery]
     client = newAsyncHttpClient()
     data = parseJson await client.getContent(url)
@@ -32,7 +31,9 @@ proc find(query: string): Future[string] {.async.} =
 proc getInfo(name: string): Future[string] {.async.} =
 
   let
+    # Получаем имя статья
     title = await find(name)
+    # Составляем параметры для API
     searchParams = {"action": "query",
                     "prop": "extracts",
                     "exintro": "",
@@ -40,15 +41,19 @@ proc getInfo(name: string): Future[string] {.async.} =
                     "titles": name,
                     "redirects": "1",
                     "format": "json"}.newStringTable()
+    # Кодируем параметры
     urlQuery = encodeGet(searchParams)
     url = "https://ru.wikipedia.org/w/api.php$1" % [urlQuery]
     client = newHttpClient()
     data = parseJson client.getContent(url)
+  # Проходимся по всем возможных результатам (но всё равно берём только первый)
   for key, value in data["query"]["pages"].getFields():
+    # Если есть ключ "extract"
     if value.contains("extract"):
       return value["extract"].str.splitLines()[0]
     else:
-      return ""
+      continue
+  return ""
 
 module "Википедия":
   command "вики", "википедия", "wiki":

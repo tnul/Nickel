@@ -15,10 +15,10 @@ proc log*(msg: Message, command: bool) =
     else:
       args = "без аргументов"
     # Зелёным цветом
-    debug("$1 > Команда `$2` $3" % [frm, msg.cmd.name, args])
+    info("$1 > Команда `$2` $3" % [frm, msg.cmd.name, args])
   else:
     # Голубым цветом
-    info("Сообщение `$1` от $2" % [msg.body, frm])
+    debug("Сообщение `$1` от $2" % [msg.body, frm])
 
 macro logWithLevel*(lvl: Level, body: untyped): untyped = 
   result = newStmtList()

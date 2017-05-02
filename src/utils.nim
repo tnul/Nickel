@@ -63,7 +63,7 @@ macro extract*(args: varargs[untyped]): typed =
     inc i
   #echo result.treerepr
 
-const IgnoreFilenames = ["base.nim"]
+const IgnoreFilenames = ["base.nim", "help.nim"]
 macro importPlugins*(): untyped =
   result = newStmtList()
   var 
@@ -87,8 +87,11 @@ macro importPlugins*(): untyped =
     let toImport = filename.split(".")
     if toImport[1] != "nim":
       continue
-    result.add(parseExpr("import " & folder & "/" & toImport[0]))
-  
+    let expr = "import " & folder & "/" & toImport[0]
+    result.add(parseExpr(expr))
+  # Импортируем help в самом конце, чтобы все остальные модули записали
+  # команды в commands
+  result.add(parseExpr("import " & folder & "/" & "help"))
 
 proc toApi*(keyValuePairs: varargs[tuple[key, val: string]]): StringTableRef {.inline.} = 
   ## Возвращает новую строковую таблицу, может использоваться

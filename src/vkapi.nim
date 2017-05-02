@@ -65,6 +65,9 @@ proc setToken*(api: VkApi, token: string) =
 
 
 proc toExecute(methodName: string, params: StringTableRef): string {.inline.} = 
+  # Если нет параметров, нам не нужно их соединять и т.д
+  if params.len == 0:
+    return "API." & methodName & "()"
   let
     # Получаем последовательность из параметров вызовы
     pairsSeq = toSeq(params.pairs)
@@ -158,18 +161,23 @@ proc executeCaller*(api: VkApi) {.async.} =
     var items: seq[string] = @[]
     # Последовательность future
     var futures: seq[Future[JsonNode]] = @[]
+    # Максимальное кол-во запросов к API через execute минус 1
+    var count = 24
     # Пока мы не опустошим нашу очередь
-    while requests.len != 0:
+    while requests.len != 0 and count != 0:
       # Получаем самый старый элемент
       let (fut, name, params) = requests.pop()
       # Добавляем в items его вызов в виде строки VKScript
       items.add name.toExecute(params)
       futures.add(fut)
+      # Декрементируем count
+      dec count
     # Составляем код VK Script
     let code = "return [" & items.join(", ") & "];"
-    # Отправляем запрос execute`
-    let answer = await api.callMethod("execute", {"code": code}.toApi, useExecute = false)
-    # Проходимся по результату и futures
+    # Отправляем запрос execute
+    let answer = await api.callMethod("execute", {"code": code}.toApi, 
+                                      useExecute = false)
+    # Проходимся по результатам и futures
     for data in zip(answer.getElems(), futures):
       let (item, fut) = data
       # Завершаем future с результатом
