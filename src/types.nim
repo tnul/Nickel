@@ -50,7 +50,7 @@ type
   
   VkApi* = ref object
     token*: string  # Токен VK API
-    forwardConf*: bool
+    fwdConf*: bool
 
   
   VkBot* = ref object

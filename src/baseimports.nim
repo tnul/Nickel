@@ -1,3 +1,4 @@
+{.experimental.}
 # Модули стандартной библиотеки
 import json  # Обработка JSON
 import httpclient  # HTTP запросы

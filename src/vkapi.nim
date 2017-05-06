@@ -49,7 +49,7 @@ proc newApi*(c: BotConfig): VkApi =
   # Создаём токен (либо авторизуем пользователя, либо берём из конфига)
   let token = if c.login != "": login(c.login, c.password) else: c.token
   # Возвращаем результат
-  result = VkApi(token: token, forwardConf: c.forwardConf)
+  result = VkApi(token: token, fwdConf: c.forwardConf)
 
 proc `token=`*(api: VkApi, token: string) =
   ## Устанавливает токен для использования в API запросах
@@ -246,7 +246,7 @@ proc answer*(api: VkApi, msg: Message, body: string, attaches = "") {.async.} =
   ## Упрощённая процедура для ответа на сообщение {msg}
   let data = {"message": body, "peer_id": $msg.pid}.toApi
   # Если это конференция, пересылаем то сообщение, на которое мы ответили
-  if msg.kind == msgConf: data["forward_messages"] = $msg.id
+  if msg.kind == msgConf and api.fwdConf: data["forward_messages"] = $msg.id
   # Если есть какие-то аттачи, добавляем их в значения для API
   if attaches.len > 0: data["attachment"] = attaches
   discard await api.callMethod("messages.send", data)
