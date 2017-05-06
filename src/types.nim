@@ -42,6 +42,7 @@ type
     logMessages*: bool
     logCommands*: bool
     convertText*: bool
+    forwardConf*: bool
     errorMessage*: string
     reportErrors*: bool
     logErrors*: bool
@@ -49,6 +50,7 @@ type
   
   VkApi* = ref object
     token*: string  # Токен VK API
+    forwardConf*: bool
 
   
   VkBot* = ref object

@@ -44,14 +44,12 @@ proc login*(login, password: string): string =
     # Получаем наш authToken
   result = data.parseJson()["access_token"].str
 
-proc newApi*(config: BotConfig): VkApi =
+proc newApi*(c: BotConfig): VkApi =
   ## Создаёт новый объект VkAPi и возвращает его
-  # Если в конфигурации авторизация от пользователя
-  if config.login != "":
-    return VkApi(token: login(config.login, config.password))
-  # Иначе - от имени группы
-  else:
-    return VkApi(token: config.token)
+  # Создаём токен (либо авторизуем пользователя, либо берём из конфига)
+  let token = if c.login != "": login(c.login, c.password) else: c.token
+  # Возвращаем результат
+  result = VkApi(token: token, forwardConf: c.forwardConf)
 
 proc `token=`*(api: VkApi, token: string) =
   ## Устанавливает токен для использования в API запросах
@@ -247,6 +245,8 @@ proc attaches*(msg: Message, vk: VkApi): Future[seq[Attachment]] {.async.} =
 proc answer*(api: VkApi, msg: Message, body: string, attaches = "") {.async.} =
   ## Упрощённая процедура для ответа на сообщение {msg}
   let data = {"message": body, "peer_id": $msg.pid}.toApi
+  # Если это конференция, пересылаем то сообщение, на которое мы ответили
+  if msg.kind == msgConf: data["forward_messages"] = $msg.id
   # Если есть какие-то аттачи, добавляем их в значения для API
   if attaches.len > 0: data["attachment"] = attaches
   discard await api.callMethod("messages.send", data)

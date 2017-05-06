@@ -12,6 +12,7 @@ password = ""
 
 [Bot]
 try_convert = True  # Пытаться ли переводить сообщения из английской в русскую раскладку?
+forward_conf = True  # Пересылать ли те сообщения, на которые отвечает бот в беседе
 
 [Errors]
 report_errors = True  # Нужно ли сообщать пользователям, когда в каком-то модуле произошла ошибка?
@@ -79,6 +80,8 @@ proc parseConfig*(): BotConfig =
         password: data.getSectionValue("Auth", "password"),
         # Нужно ли проверять на некорректную раскладку
         convertText: data.getSectionValue("Bot", "try_convert").parseBool,
+        # Нужно ли пересылать сообщения, на которые отвечает бот в беседе
+        forwardConf: data.getSectionValue("Bot", "forward_conf").parseBool,
         # Нужно ли отправлять пользователям сообщение об ошибке
         reportErrors: data.getSectionValue("Errors", "report_errors").parseBool,
         # Отправлять ли пользователям полный лог ошибки
