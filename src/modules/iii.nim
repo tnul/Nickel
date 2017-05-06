@@ -4,7 +4,7 @@ import base64, httpclient
 const
   Key = "some very-very long string without any non-latin characters due to different string representations inside of variable programming languages"
   KeyLen = len(Key)
-  # ID вашего инфа. По умолчанию стоит ID первого инфа в глобальном рейтинге
+  # ID инфа. По умолчанию стоит ID первого инфа в глобальном рейтинге
   BotID = "970c8b3d-2e25-471d-8aab-efc87bcb7155"
 
 proc interXor(msg: string): string = 
@@ -34,11 +34,11 @@ proc init(id: string): Future[string] {.async.} =
   # Возвращаем ID сессии
   result = jsonData["result"]["cuid"].str
 
-proc chat(ses: string, msg: string): Future[string] {.async.} = 
+proc chat(sess, msg: string): Future[string] {.async.} = 
   let 
     client = newAsyncHttpClient()
     # Формируем данные для отправки - ["код сессии","сообщение"]
-    toSend = "[\"$1\",\"$2\"]" % [ses, msg]
+    toSend = "[\"$1\",\"$2\"]" % [sess, msg]
     # Шифруем данные
     hashed = encrypt(base64.encode(toSend))
     # Отправляем запрос к iii
@@ -49,10 +49,8 @@ proc chat(ses: string, msg: string): Future[string] {.async.} =
 var 
   sessions = initTable[string, string]()
 
-# В данный момент поддержка iii сломана
-#[
 module "&#128172;", "Бот iii.ru":
-  command "сеть", "iii", "инф":
+  command "сеть", "iii", "инф", "сеть,", "инф,":
     usage = "сеть <текст> - отправить боту сообщение"
     let
       uid = $msg.pid
@@ -60,4 +58,3 @@ module "&#128172;", "Бот iii.ru":
       sessions[uid] = await init(uid)
     let sess = sessions[uid]
     answer(await sess.chat(text))
-]#

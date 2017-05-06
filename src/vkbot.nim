@@ -95,20 +95,23 @@ proc processLpMessage(bot: VkBot, event: seq[JsonNode]) {.async.} =
     return
 
   let
-    msgPeerId = int(peerId.getNum())
     # Неожиданно, но ВК посылает Long Polling с <br>'ами вместо \n
     msgBody = text.str.replace("<br>", "\n")
     # Обрабатываем строку и создаём объект команды
     cmd = bot.processCommand(msgBody)
     # Создаём объект Message
     message = Message(
-      id: int(msgId.getNum()),  # ID сообщения
-      pid: msgPeerId,  # ID отправителя
-      timestamp: int(ts.getNum()),  # Когда было отправлено сообщение
+      kind: if attaches.contains("from"): msgConf else: msgPriv,
+      id: int msgId.getNum,  # ID сообщения
+      pid: int peerId.getNum,  # ID отправителя
+      timestamp: int ts.getNum,  # Когда было отправлено сообщение
       subject: subject.str,  # Тема сообщения
       cmd: cmd,  # Объект сообщения 
       body: text.str,  # Тело сообщения
     )
+  # Если это конференция, то добавляем ID пользователя
+  if message.kind == msgConf:
+    message.cid = int attaches["from"].getNum
 
   # Выполняем обработку сообщения
   let processResult = bot.processMessage(message)

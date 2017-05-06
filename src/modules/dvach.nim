@@ -40,6 +40,6 @@ module "﷽", "Двач - случайные мемы с двача или из 
     usage = "двач - случайный мем с двача"
     await giveMemes(api, msg, DvachGroupId)
 
-  command "мемы", "мемчики", "мемасы", "мемасики":
+  command "мемы", "мемчики", "мемасы", "мемасики", "мемас":
     usage = "мемы - случайный мем из https://vk.com/hard_ps"
     await giveMemes(api, msg, MemesGroupId)

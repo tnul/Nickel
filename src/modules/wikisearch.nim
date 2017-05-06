@@ -61,7 +61,13 @@ module "Википедия":
     if text == "":
       answer usage
       return
-    let data = await getInfo(text)
+    var data: string
+    try:
+      # Пытаемся получить информацию
+      data = await getInfo(text)
+    except: 
+      # Не получилось - такой статьи нет
+      data = ""
     if data == "":
       answer "Информации по запросу `$1` не найдено." % [text]
     else:

@@ -118,5 +118,5 @@ macro vk*(call: untyped): untyped =
     api.callMethod(`methodStr`, params=`tabl`.toApi)
 
 template answer*(data: string, atch: string = "") {.dirty.} = 
-  ## Отвечает пользователю сообщением с текстом $data
+  ## Send message $data to user
   yield api.answer(msg, data, attaches=atch)

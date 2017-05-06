@@ -4,13 +4,13 @@ import httpclient, encodings, math, times
 const Url = "http://api.fixer.io/latest?base="
 
 var 
-  data: string = ""
-  lastTime: float = epochTime()
+  data = ""
+  lastTime = epochTime()
 
 proc getData(): Future[string] {.async.} =
-  # Если у нас сохранены данные и прошло меньше 1800 секунд
+  # Если у нас сохранены данные и прошло меньше 30 минут (30*60=1800)
   if data.len > 0 and (epochTime() - lastTime) <= 1800.0:
-    # Возвращаеи кешированные данные
+    # Возвращаеv кешированные данные
     return data
   # Иначе - получаем их
   let client = newAsyncHttpClient()

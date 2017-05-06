@@ -20,9 +20,16 @@ type
     name*: string  # Сама команда
     args*: seq[string]  # Последовательность аргументов
 
+  MessageKind* = enum msgPriv, msgConf
   Message* = ref object
+    # Тип сообщения
+    case kind*: MessageKind
+    # Если это конференция, то добавляем поле с ID пользователя
+    of msgConf:
+      cid*: int
+    else: discard
     id*: int  # ID сообщения
-    pid*: int  # ID отправителя
+    pid*: int  # ID отправителя (беседа или пользователь)
     timestamp*: int  # Дата отправки
     subject*: string  # Тема 
     cmd*: Command  # Объект команды для данного сообщения
