@@ -2,15 +2,15 @@
 {.experimental.}
 import ../types  # типы данных
 import ../vkapi  # VK API
-import ../command  # процедура handle
-import ../utils  # утилиты
-import ../meta  # метапрограммирование
+import ../command  # Процедура handle
+import ../utils  # Утилиты
+import ../meta  # Метапрограммирование
 import json  # Парсинг JSON
 import strutils  # Строковые операции
 import asyncdispatch  # Асинхронность
-import strtabs  # Для работы с StringTable
-import random  # Для функций рандома
-import tables  # Для некоторых манипуляций во время компиляции
-import logging  # логгирование
+import strtabs  # Работа с StringTable
+import random  # Функции рандома
+import tables  # Обработка модулей во время компиляции
+import logging  # Логгирование
 # Рандомизируем вывод рандома (иначе он будет всегда одинаков в каждом запуске)
 randomize()

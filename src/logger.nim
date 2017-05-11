@@ -5,19 +5,18 @@ var L* = newConsoleLogger()
 addHandler(L)
 export logging
 
-proc log*(msg: Message, command: bool) = 
+proc log*(msg: Message, command = false) = 
   ## Логгирует объект сообщения в консоль
   let frm = "https://vk.com/id" & $msg.pid
+  # Если нужно логгировать команду
   if command:
     var args = ""
     if len(msg.cmd.args) > 0:
       args = "с аргументами " & $msg.cmd.args
     else:
       args = "без аргументов"
-    # Зелёным цветом
     info("$1 > Команда `$2` $3" % [frm, msg.cmd.name, args])
   else:
-    # Голубым цветом
     debug("Сообщение `$1` от $2" % [msg.body, frm])
 
 macro logWithLevel*(lvl: Level, body: untyped): untyped = 

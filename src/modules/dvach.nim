@@ -1,6 +1,6 @@
 include base
 
-const 
+const
   Answers = ["Каеф", "Не баян (баян)", "Ну держи!"]
   DvachGroupId = "-22751485"  # https://vk.com/ru2ch
   MemesGroupId = "-86441049"  # https://vk.com/hard_ps

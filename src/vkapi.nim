@@ -103,7 +103,6 @@ proc callMethod*(api: VkApi, methodName: string, params: StringTableRef = nil,
     jsonData = await apiFuture
   # Иначе - обычный вызов API
   else:
-    
     let 
       # Отправляем запрос к API
       req = await http.postData(url, params)
@@ -112,6 +111,7 @@ proc callMethod*(api: VkApi, methodName: string, params: StringTableRef = nil,
     # Если была ошибка о флуде, добавляем анти-флуд
     if flood:
       params["message"] = antiFlood() & "\n" & params["message"]
+    # Парсим ответ от сервера
     jsonData = parseJson(resp)
   
   let response = jsonData.getOrDefault("response") 
@@ -153,12 +153,14 @@ proc executeCaller*(api: VkApi) {.async.} =
     # Если в очереди нет элементов
     if requests.len == 0:
       continue
-    # Последовательность вызовов API в виде VKScript
-    var items: seq[string] = @[]
-    # Последовательность future
-    var futures: seq[Future[JsonNode]] = @[]
-    # Максимальное кол-во запросов к API через execute минус 1
-    var count = 24
+    
+    var 
+      # Последовательность вызовов API в виде VKScript
+      items: seq[string] = @[]
+      # Последовательность future
+      futures: seq[Future[JsonNode]] = @[]
+      # Максимальное кол-во запросов к API через execute минус 1
+      count = 24
     # Пока мы не опустошим нашу очередь или лимит запросов кончится
     while requests.len != 0 and count != 0:
       # Получаем самый старый элемент
@@ -166,12 +168,12 @@ proc executeCaller*(api: VkApi) {.async.} =
       # Добавляем в items его вызов в виде строки VKScript
       items.add name.toExecute(params)
       futures.add(fut)
-      # Декрементируем count
+      # Уменьшаем количество доступных запросов
       dec count
     # Составляем код VK Script
     let code = "return [" & items.join(", ") & "];"
     # Отправляем запрос execute
-    let answer = await api.callMethod("execute", {"code": code}.toApi, 
+    let answer = await api.callMethod("execute", {"code": code}.toApi,
                                       useExecute = false)
     # Проходимся по результатам и futures
     for data in zip(answer.getElems(), futures):

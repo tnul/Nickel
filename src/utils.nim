@@ -1,11 +1,12 @@
-# Файл с различными хелперами
+# Файл с различными помощниками
 
 # Стандартная библиотека
 import macros, strtabs, times, strutils, random, os, sequtils, unicode
 # Свои пакеты
 import types
 
-const 
+const
+  # Таблица русских и английских символов (для конвертирования раскладки)
   English = ["Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P", "A", 
              "S", "D", "F", "G", "H", "J", "K", "L", "Z", "X", "C", 
              "V", "B", "N", "M", "q", "w", "e", "r", "t", "y", "u", "i", 
@@ -22,8 +23,9 @@ const
              "Х", "х", "Ъ", "ъ", "Э", "э", "Б", "б", "Ю", "ю", "ж", 
              ",", ".", "?", "'", "№", ";"]
 
-template convert(data:string, frm, to: untyped): untyped = 
+template convert(data:string, frm, to: untyped): untyped =
   result = ""
+  # Проходимся по UTF8 символам в строке
   for x in utf8(data):
     if not frm.contains(x):
       result.add x
@@ -63,37 +65,50 @@ macro extract*(args: varargs[untyped]): typed =
     inc i
   #echo result.treerepr
 
+# Имена файлов, которые не нужно импортировать автоматически
 const IgnoreFilenames = ["base.nim", "help.nim"]
 macro importPlugins*(): untyped =
   result = newStmtList()
-  var 
+  var
     data: seq[tuple[kind: PathComponent, path: string]]
     folder = "src/modules"
+  # Если мы на Windows, то у пути должны быть обратные слеши
   when defined(windows) and not defined(crosswin):
     folder = r"src\modules"
     data = toSeq(walkDir(r"src\modules"))
   else:
     data = toSeq(walkDir("src/modules"))
+  # Если в данной папке нет ни одного элемента
   if data.len < 1:
     folder = "modules"
+  # Проходимся по папке
   for kind, path in walkDir(folder):
+    # Если это не файл
     if kind != pcFile:
       continue
-    let 
+    let
+      # Разделитель для импорта
       separator = when defined(windows) and not defined(crosswin): r"\" else: "/"
+      # Имя файла (делим справа максимум с 1 разделением)
       filename = path.rsplit(separator, maxsplit=1)[1]
+    # Если этот файл нужно игнорировать
     if filename in IgnoreFilenames:
       continue
+    # Имя модуля для импорта
     let toImport = filename.split(".")
+    # Если расширение файла не .nim
     if toImport[1] != "nim":
       continue
-    let expr = "import " & folder & "/" & toImport[0]
-    result.add(parseExpr(expr))
+    let pathPart = "import " & folder & "/" 
+    let importStmt = pathPart & toImport[0]
+    # Добавляем импорт этого модуля
+    result.add parseExpr(importStmt)
   # Импортируем help в самом конце, чтобы все остальные модули записали
   # команды в commands
-  result.add(parseExpr("import " & folder & "/" & "help"))
+  result.add parseExpr("import " & folder & "/" & "help")
 
-proc toApi*(keyValuePairs: varargs[tuple[key, val: string]]): StringTableRef {.inline.} = 
+proc toApi*(keyValuePairs: varargs[tuple[key, val: string]]): StringTableRef 
+            {.inline.} = 
   ## Возвращает новую строковую таблицу, может использоваться
   ## вот так: var info = {"message":"Hello", "peer_id": "123"}.toApi
   return newStringTable(keyValuePairs, modeCaseInsensitive)

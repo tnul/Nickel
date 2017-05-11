@@ -1,70 +1,72 @@
-# Standart library
+# Стандартная библиотека
 import macros
 import strutils
 import sequtils
 import command
-# Custom modules
+# Свои модули
 import utils
 import vkapi
 import types
 
+# Увеличивается с каждым новым обработчиком команды
+# Создан для уникальных имён
 var count {.compiletime.} = 1
 
 macro command*(cmds: varargs[string], body: untyped): untyped =
   let 
-    # Unique name for each handler procedure
+    # Создаём уникальное имя для процедура
     uniqName = newIdentNode("handler" & $count)
   var 
     usage = ""
     moduleUsages: seq[string] = @[]
     procBody = newStmtList()
-  # If we have `usage = something`
+  # Если у нас есть `usage = something`
   if body[0].kind == nnkAsgn:
     let text = body[0][1]
     
-    # If it's an array like ["a", "b"]
+    # Если это массив, например ["a", "b"]
     if text.kind == nnkBracket:
       for i in 0..<text.len:
         moduleUsages.add text[i].strVal
-    # If it's a string or a triple-quoted string
+    # Если это строка, или строка с тройными кавычками
     elif text.kind == nnkStrLit or text.kind == nnkTripleStrLit:
       usage = text.strVal
-  # Add actual handler code except line with usage
+  # Добавляем сам код обработчика (кроме строки кода с usage)
   for i in 1..<body.len:
     procBody.add body[i]
-  # Add to global usages only if usage is not an empty string
+  # Добавляем к usages только если usage - не пустая строка
   if usage.len > 0:
     usages.add usage
-  #result = quote do:
-  #  const usage = `usage` 
-  # If there's some strings in moduleUsages
+  # Если есть строки в moduleUsages
   if moduleUsages.len > 0:
     usage = moduleUsages.join("\n")
     for x in moduleUsages:
-      # Add to global usages
+      # Добавляем к глобальным usages
       if x != "": usages.add(x)
-  # Increment counter for unique procedure names
+  # Инкрементируем счётчик для уникальных имён
   inc count
   
   let
-    # Create new ident nodes to be sure Nim would not mangle our variables
+    # Создаём идентификационные ноды, чтобы Nim не изменял имя переменных
     api = newIdentNode("api")
     msg = newIdentNode("msg")
     procUsage = newIdentNode("usage")
     args = newIdentNode("args")
     text = newIdentNode("text")
+  # Добавляем код к результату
   result = quote do:
     proc `uniqName`(`api`: VkApi, `msg`: Message) {.async.} = 
-      # Add "usage" so we can use usage inside of proc body
+      # Добавляем "usage" для того, чтобы использовать его внутри процедуры
       const `procUsage` = `usage`
-      # Simpler shortcut to "msg.cmd.args"
+      # Сокращение для "msg.cmd.args"
       let `args` = `msg`.cmd.args
-      # Some modules need to get text, not arguments
+      # Сокращение для получения текста (сразу всех аргументов)
       let `text` = `msg`.cmd.args.join(" ")
+      # Вставляем само тело процедуры
       `procBody`
-    # Commands for this handler
+    # Команды, которые обрабатываются этим обработчиком
     const cmds = `cmds`
-    # Call proc.handle(cmds) from command.nim
+    # Вызываем proc.handle(cmds) из command.nim
     handle(`uniqName`, cmds)
 
 macro module*(names: varargs[string], body: untyped): untyped = 
@@ -118,5 +120,5 @@ macro vk*(call: untyped): untyped =
     api.callMethod(`methodStr`, params=`tabl`.toApi)
 
 template answer*(data: string, atch: string = "") {.dirty.} = 
-  ## Send message $data to user
+  ## Отправляет сообщение $data пользователю
   yield api.answer(msg, data, attaches=atch)

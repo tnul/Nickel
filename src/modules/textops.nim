@@ -30,20 +30,23 @@ module "&#128394;", "Операции с текстом":
       answer "перечеркни <строка> - перечеркнуть строку"
     else:
       var res = ""
+      # Проходимся по UTF8 символам в тексте
       for x in utf8(text):
+        # Добавляем к результату символ + доп. коды
         res.add x & "&#38;#0822;"
       answer res
   
   command "переверни":
     usage = "переверни <строка> - перевернуть строку"
-    proc replace(data: string): string = 
-      result = ""
-      for letter in unicode.toLower(data.reversed).utf8:
-        if FlipTable.hasKey(letter): 
-          result &= FlipTable[letter]
-        else: 
-          result &= letter
-    answer text.replace()
+    var data = text
+    for letter in unicode.toLower(data.reversed).utf8:
+      # Если ключ есть в нашей таблице
+      if FlipTable.hasKey(letter): 
+        data &= FlipTable[letter]
+      # Иначе просто добавляем саму букву
+      else: 
+        data &= letter
+    answer data
     
   command "лол":
     usage = "лол <кол-во> - генерирует смех определённой длины из символов АЗХ"

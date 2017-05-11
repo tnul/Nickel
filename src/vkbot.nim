@@ -15,13 +15,11 @@ importPlugins()  # импортируем все модули из папки
 # Переменная для обозначения, работает ли главный цикл бота
 var running = false
 
-
 proc getLongPollUrl(bot: VkBot) =
-  ## Получает URL для Long Polling на основе данных, полученных ботом
+  ## Получает URL для Long Polling на основе данных bot.lpData
   const 
     UrlFormat = "https://$1?act=a_check&key=$2&ts=$3&wait=25&mode=2&version=1"
-  let
-    data = bot.lpData
+  let data = bot.lpData
   bot.lpUrl = UrlFormat % [data.server, data.key, $data.ts]
 
 proc processCommand(bot: VkBot, body: string): Command =
@@ -35,12 +33,11 @@ proc processCommand(bot: VkBot, body: string): Command =
     # Если команда начинается с префикса в нижнем регистре
     if unicode.toLower(body).startsWith(prefix):
       foundPrefix = prefix
-      # Выходим из цикла
       break
   # Если мы не нашли префикс - выходим
   if foundPrefix == nil:
     return
-  # Получаем команду и аргументы - берём слайс строки body без префикса, 
+  # Получаем команду и аргументы - берём слайс строки body без префикса,
   # используем strip для удаления нежелательных пробелов в начале и конце,
   # делим строку на имя команды и значения
   let values = body[len(foundPrefix)..^1].strip().split()
@@ -66,21 +63,19 @@ proc processMessage(bot: VkBot, msg: Message) {.async.} =
 
   elif commands.contains(engConverted):
     msg.cmd.name = engConverted
-    msg.cmd.args.applyIt it.toRus()
+    msg.cmd.args.applyIt it.toEng()
     command = true
   # Если это команда
   if command:
     # Если нужно логгировать команды
     if bot.config.logCommands:
       msg.log(command = true)
-    # Получаем процедуру плагина, которая обрабатывает эту команду
-    let handler = commands[msg.cmd.name]
-    # Выполняем процедуру асинхронно с хэндлером ошибок
-    runCatch(handler, bot, msg)
+    # Выполняем процедуру модуля асинхронно с хэндлером ошибок
+    runCatch(commands[msg.cmd.name], bot, msg)
   else:
     # Если это не команда, и нужно логгировать сообщения
     if bot.config.logMessages:
-      msg.log(command = false)
+      msg.log()
 
 
 proc processLpMessage(bot: VkBot, event: seq[JsonNode]) {.async.} =
@@ -95,12 +90,13 @@ proc processLpMessage(bot: VkBot, event: seq[JsonNode]) {.async.} =
     return
 
   let
-    # Неожиданно, но ВК посылает Long Polling с <br>'ами вместо \n
+    # ВК посылает Long Polling с <br>'ами вместо \n
     msgBody = text.str.replace("<br>", "\n")
     # Обрабатываем строку и создаём объект команды
     cmd = bot.processCommand(msgBody)
     # Создаём объект Message
     message = Message(
+      # Тип сообщения - если есть поле "from" - беседа, иначе - ЛС
       kind: if attaches.contains("from"): msgConf else: msgPriv,
       id: int msgId.getNum,  # ID сообщения
       pid: int peerId.getNum,  # ID отправителя
@@ -109,18 +105,17 @@ proc processLpMessage(bot: VkBot, event: seq[JsonNode]) {.async.} =
       cmd: cmd,  # Объект сообщения 
       body: text.str,  # Тело сообщения
     )
-  # Если это конференция, то добавляем ID пользователя
+  # Если это конференция, то добавляем ID пользователя, который
+  # отправил это сообщение
   if message.kind == msgConf:
     message.cid = int attaches["from"].getNum
 
   # Выполняем обработку сообщения
   let processResult = bot.processMessage(message)
   yield processResult
-  # Если обработка сообщения вызвала ошибку
+  # Если сообщение не удалось обработать
   if unlikely(processResult.failed):
-    let
-      # Случайные буквы
-      rnd = antiFlood() & "\n"
+    let rnd = antiFlood() & "\n"
     # Сообщение, котороые мы пошлём
     var errorMessage = rnd & bot.config.errorMessage & "\n"
     if bot.config.fullReport:
@@ -137,6 +132,7 @@ proc newBot(config: BotConfig): VkBot =
   let
     api = newApi(config)
     lpData = LongPollData()
+  # Запускаем бесконечный цикл отправки запросов через execute
   asyncCheck api.executeCaller()
   return VkBot(api: api, lpData: lpData, config: config)
 
@@ -191,14 +187,12 @@ proc mainLoop(bot: VkBot) {.async.} =
     # Если произошла ошибка
     if req.failed:
       debug("Запрос к LP не удался, создаю новый объект HTTP клиента...")
-      GC_fullCollect()
       #[Из-за бага стандартной библиотеки, если иметь 1 http клиент, он
       крашится через 20-30 минут работы, поэтому мы инициализируем новый
       клиент при каждой ошибке. Но это не ухудшает
       производительность, так как newAsyncHttpClient() можно вызывать
       примерно миллион раз в секунду, а мы его вызываем раз в 10-25 минут]#
       http = newAsyncHttpClient()
-      await sleepAsync(500)
       continue
     let
       # Парсим ответ сервера в JSON
@@ -213,9 +207,8 @@ proc mainLoop(bot: VkBot) {.async.} =
       else:
         await bot.initLongPolling(failNum)
       continue
-
-    let events = jsonData["updates"]
-    for event in events:
+    
+    for event in jsonData["updates"]:
       # Делим каждое событие на его тип и на информацию о нём
       let
         elems = event.getElems()
@@ -229,7 +222,7 @@ proc mainLoop(bot: VkBot) {.async.} =
         else:
           discard
     # Обновляем метку времени
-    bot.lpData.ts = int(jsonData["ts"].getNum())
+    bot.lpData.ts = int jsonData["ts"].getNum()
     
 
 proc startBot(bot: VkBot) {.async.} =
@@ -248,8 +241,9 @@ when isMainModule:
   # Если мы на Windows - устанавливаем кодировку UTF-8 при запуске бота
   when defined(windows):
     discard execShellCmd("chcp 65001")
+  # Парсим конфиг
   let cfg = parseConfig()
-  # Выводим значения конфига (кроме токена)
+  # Выводим его значения (кроме логина, пароля, и токена)
   cfg.log()
   # Создаём новый объект бота на основе конфигурации
   let bot = newBot(cfg)

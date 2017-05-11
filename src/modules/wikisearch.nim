@@ -31,9 +31,9 @@ proc find(query: string): Future[string] {.async.} =
 proc getInfo(name: string): Future[string] {.async.} =
 
   let
-    # Получаем имя статья
+    # Получаем имя статьи
     title = await find(name)
-    # Составляем параметры для API
+    # Составляем параметры для MediaWiki API
     searchParams = {"action": "query",
                     "prop": "extracts",
                     "exintro": "",

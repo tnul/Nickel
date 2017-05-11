@@ -6,12 +6,12 @@ var
 
 proc handle*(handler: ModuleFunction, cmds: varargs[string]) = 
   ## Процедура для добавления нескольких комманд для данного обработчика
-  ## Пример - call.handle("привет", "прив", "ку"), где call - это ModuleFunction
+  ## Пример - call.handle("привет", "ку"), где call - это ModuleFunction
   for cmd in cmds:
     if cmd == "": anyCommands.add(handler)
     else: commands[cmd] = handler
 
-proc anyCommand*(handler: ModuleFunction) = 
+proc anyCommand*(handler: ModuleFunction) =
   anyCommands.add(handler)
 
 # Все модули объявляются во время компиляции, 

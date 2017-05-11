@@ -61,7 +61,7 @@ proc parseConfig*(): BotConfig =
   if not existsFile("settings.ini"):
     open("settings.ini", fmWrite).write(DefaultSettings)
     notice(FileCreatedMessage)
-
+    quit()
   try:
     let 
       # Загружаем конфиг и получаем значения из него

@@ -1,7 +1,6 @@
 import json, httpclient, queues, asyncdispatch
 
-# Все эти типы и поля доступны в других методах.
-# Экспортируемые типы и поля указываются знаком *
+# Все эти типы и поля доступны в других модулях.
 
 type
   LongPollData* = object
@@ -19,17 +18,16 @@ type
   Command* = object
     name*: string  # Сама команда
     args*: seq[string]  # Последовательность аргументов
-
+  # Тип сообщения - из беседы или из ЛС
   MessageKind* = enum msgPriv, msgConf
   Message* = ref object
-    # Тип сообщения
     case kind*: MessageKind
     # Если это конференция, то добавляем поле с ID пользователя
     of msgConf:
       cid*: int
     else: discard
     id*: int  # ID сообщения
-    pid*: int  # ID отправителя (беседа или пользователь)
+    pid*: int  # ID отправителя (беседы или пользователя)
     timestamp*: int  # Дата отправки
     subject*: string  # Тема 
     cmd*: Command  # Объект команды для данного сообщения
@@ -57,7 +55,7 @@ type
     api*: VkApi  # Объект VK API
     lpData*: LongPollData  # Информация о сервере Long Pooling
     lpURL*: string  # URL сервера Long Pooling
-    config*: BotConfig
+    config*: BotConfig  # Конфигурация бота
 
   ModuleFunction* = proc(api: VkApi, msg: Message): Future[void]
 

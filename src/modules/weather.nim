@@ -14,21 +14,21 @@ $2
 Скорость ветра: $6 м/с
 """
 
-const TextToDays = {"через неделю": 8, "послезавтра": 2, "через 1 день": 2, 
-                   "через 5 дней": 6, "через 6 дней": 7, "через день": 2, 
-                   "через 2 дня": 3, "через 3 дня": 4, "через 4 дня": 5, 
-                   "завтра": 1}.toOrderedTable
+  TextToDays = {"через неделю": 8, "послезавтра": 2, "через 1 день": 2,
+                "через 5 дней": 6, "через 6 дней": 7, "через день": 2,
+                "через 2 дня": 3, "через 3 дня": 4, "через 4 дня": 5,
+                "завтра": 1}.toOrderedTable
               
 module "&#127782;", "Погода":
   command "погода":
     usage = "погода <город> <время> - узнать погоду, например `погода в Москве через неделю`"
     let 
       client = newAsyncHttpClient()
-    var 
+    var
       city = DefaultCity
       days = 0
       url: string
-    
+    # Если есть какие-то аргументы
     if args.len > 0:
       var args = args.join(" ")
       # Проходимся по всем возможным значения
@@ -36,10 +36,11 @@ module "&#127782;", "Погода":
         if key in args:
           args = args.replace(key, "")
           days = val
+      # Находим город, который отправил пользователь
       let possibleCity = args.replace(" в ", "").replace(" в", "").replace("в ", "")
       if possibleCity != "":
         city = unicode.toLower(possibleCity)
-    
+    # Формируем URL
     url = ForecastUrlFormat % [Key, city, $(days+1)]
     let resp = await client.get(url)
     # Если сервер не нашёл этот город
