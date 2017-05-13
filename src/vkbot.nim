@@ -207,7 +207,7 @@ proc mainLoop(bot: VkBot) {.async.} =
       else:
         await bot.initLongPolling(failNum)
       continue
-    
+    if not jsonData.contains("updates"): continue
     for event in jsonData["updates"]:
       # Делим каждое событие на его тип и на информацию о нём
       let
