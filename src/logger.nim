@@ -22,5 +22,6 @@ proc log*(msg: Message, command = false) =
 macro logWithLevel*(lvl: Level, body: untyped): untyped = 
   result = newStmtList()
   for elem in body:
-    result.add quote do:
+    let data = quote do:
       logging.log(`lvl`, `elem`)
+    result.add data

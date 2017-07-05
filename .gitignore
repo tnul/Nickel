@@ -3,3 +3,7 @@ vkbot.linux64
 vkbot.exe
 settings.ini
 logindata
+*.dll
+*.exe
+*.ilk
+*.pdb

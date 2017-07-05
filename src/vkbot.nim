@@ -207,6 +207,7 @@ proc mainLoop(bot: VkBot) {.async.} =
       else:
         await bot.initLongPolling(failNum)
       continue
+    # Такое может случиться
     if not jsonData.contains("updates"): continue
     for event in jsonData["updates"]:
       # Делим каждое событие на его тип и на информацию о нём
@@ -238,9 +239,11 @@ proc gracefulShutdown() {.noconv.} =
   quit(0)
 
 when isMainModule:
-  # Если мы на Windows - устанавливаем кодировку UTF-8 при запуске бота
   when defined(windows):
+     # Если мы на Windows - устанавливаем кодировку UTF-8 при запуске бота
     discard execShellCmd("chcp 65001")
+    # Очищаем консоль
+    discard execShellCmd("cls")
   # Парсим конфиг
   let cfg = parseConfig()
   # Выводим его значения (кроме логина, пароля, и токена)

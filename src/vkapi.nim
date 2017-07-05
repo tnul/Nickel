@@ -5,10 +5,10 @@ import sequtils
 import queues
 const
   # Для авторизации от имени пользователя мы используем 
-  # данные официального приложения ВК
+  # данные официального приложения ВК под iPhone
   AuthScope = "all"
-  ClientId = "2274003"
-  ClientSecret = "hHbZxrka2uZ6jB1inYsH"
+  ClientId = "3140623"
+  ClientSecret = "VeWdmVclDCtn6ihuP1nt"
 
 proc encodePost(params: StringTableRef): string =
   ## Кодирует параметры $params для отправки POST запросом

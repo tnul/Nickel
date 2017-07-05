@@ -83,22 +83,22 @@ var
 
 ##  Parses the input expression, evaluates it, and frees it.
 ##  Returns NaN on error.
-proc te_interp(expression: cstring; error: ptr cint): cdouble {.importc.}
+proc te_interp(expression: cstring; error: ptr cint): cdouble {.cdecl, importc.}
 
 ##  Parses the input expression and binds variables.
 ##  Returns NULL on error.
 proc te_compile(expression: cstring; variables: ptr te_variable; var_count: cint;
-                error: ptr cint): ptr te_expr {.importc.}
+                error: ptr cint): ptr te_expr {.cdecl, importc.}
 
 ##  Evaluates the expression.
-proc te_eval(n: ptr te_expr): cdouble {.importc.}
+proc te_eval(n: ptr te_expr): cdouble {.cdecl, importc.}
 
 ##  Prints debugging information on the syntax tree.
-proc te_print(n: ptr te_expr) {.importc.}
+proc te_print(n: ptr te_expr) {.cdecl, importc.}
 
 ##  Frees the expression.
 ##  This is safe to call on NULL pointers.
-proc te_free(n: ptr te_expr) {.importc.}
+proc te_free(n: ptr te_expr) {.cdecl, importc.}
 
 proc isNaN*(s: float): bool =
   ## Returns true if float is nan
