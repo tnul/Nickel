@@ -1,8 +1,8 @@
 include baseimports
 import logging
 import macros
-var L* = newConsoleLogger()
-addHandler(L)
+var logger* = newConsoleLogger()
+addHandler(logger)
 export logging
 
 proc log*(msg: Message, command = false) = 

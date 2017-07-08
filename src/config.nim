@@ -35,7 +35,7 @@ prefixes = "бот|бот, |"
 # lvlError 
 # lvlFatal
 # lvlNone
-format = "[$time][$appname][$levelid] "  # https://nim-lang.org/docs/logging.html
+format = "[$time][$levelid] "  # https://nim-lang.org/docs/logging.html
 level = lvlInfo
 errors = True  # Нужно ли писать ошибки вместе с логом в консоль?
 messages = True  # Нужно ли логгировать сообщения? True/False
@@ -102,8 +102,8 @@ proc parseConfig*(): BotConfig =
       fatal(NoTokenMessage)
       quit()
     
-    L.levelThreshold = parseEnum[Level] data.getSectionValue("Logging", "level")
-    L.fmtStr = data.getSectionValue("Logging", "format")
+    logger.levelThreshold = parseEnum[Level](data.getSectionValue("Logging", "level"))
+    logger.fmtStr = data.getSectionValue("Logging", "format")
     warn(LoadMessage)
     return c
   except:

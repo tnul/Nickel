@@ -15,5 +15,5 @@ import asyncdispatch  # Асинхронность
 import future  # Экспериментальные функции
 
 # Свои модули
-import logger
+import log
 import types

@@ -1,16 +1,15 @@
-{.experimental.}
 include baseimports
 import sequtils  # Работа с последовательностями
 
-# Свои модули, и модули, которых нет в Nimble
+# Свои модули
 import utils  # Макрос unpack (взят со stackoverflow)
 import types  # Общие типы бота
 import vkapi  # Реализация VK API
 import config # Парсинг файла конфигурации
 import errors  # Обработка ошибок
-import command  # таблица {команда: плагин} и макросы
-import logger  # логгирование
-importPlugins()  # импортируем все модули из папки 
+import command  # Таблица {команда: плагин} и макросы
+import log  # Логгирование
+importPlugins()  # Импортируем все модули из папки modules
 
 # Переменная для обозначения, работает ли главный цикл бота
 var running = false
@@ -52,7 +51,7 @@ proc processMessage(bot: VkBot, msg: Message) {.async.} =
     rusConverted = toRus(cmdText)
     engConverted = toEng(cmdText)
   var command = false
-  # FIXME: Уменьшить повторение кода в обработке раскладки
+  # TODO: Уменьшить повторение кода в обработке раскладки
   if commands.contains(cmdText):
     command = true
 
@@ -84,7 +83,7 @@ proc processLpMessage(bot: VkBot, event: seq[JsonNode]) {.async.} =
   event.extract(msgId, flags, peerId, ts, subject, text, attaches)
 
   # Конвертируем число в set значений enum'а Flags
-  let msgFlags = cast[set[Flags]](int(flags.getNum()))
+  let msgFlags = cast[set[Flags]](flags.num)
   # Если мы же и отправили это сообщение - его обрабатывать не нужно
   if Flags.Outbox in msgFlags:
     return
@@ -98,9 +97,9 @@ proc processLpMessage(bot: VkBot, event: seq[JsonNode]) {.async.} =
     message = Message(
       # Тип сообщения - если есть поле "from" - беседа, иначе - ЛС
       kind: if attaches.contains("from"): msgConf else: msgPriv,
-      id: int msgId.getNum,  # ID сообщения
-      pid: int peerId.getNum,  # ID отправителя
-      timestamp: int ts.getNum,  # Когда было отправлено сообщение
+      id: int msgId.num,  # ID сообщения
+      pid: int peerId.num,  # ID отправителя
+      timestamp: ts.num,  # Когда было отправлено сообщение
       subject: subject.str,  # Тема сообщения
       cmd: cmd,  # Объект сообщения 
       body: text.str,  # Тело сообщения
@@ -108,7 +107,7 @@ proc processLpMessage(bot: VkBot, event: seq[JsonNode]) {.async.} =
   # Если это конференция, то добавляем ID пользователя, который
   # отправил это сообщение
   if message.kind == msgConf:
-    message.cid = int attaches["from"].getNum
+    message.cid = int attaches["from"].num
 
   # Выполняем обработку сообщения
   let processResult = bot.processMessage(message)
@@ -160,20 +159,20 @@ proc initLongPolling(bot: VkBot, failNum = 0) {.async.} =
       # Нам нужно инициализировать все параметры - первый запуск
       bot.lpData.server = data["server"].str
       bot.lpData.key = data["key"].str
-      bot.lpData.ts = int(data["ts"].getNum())
+      bot.lpData.ts = data["ts"].num
     of 2:
       ## Обновляем ключ
       bot.lpData.key = data["key"].str
     of 3:
       ## Обновляем ключ и метку времени
       bot.lpData.key = data["key"].str
-      bot.lpData.ts = int(data["ts"].getNum())
+      bot.lpData.ts = data["ts"].num
     else:
       discard
   # Обновляем URL Long Polling'а
   bot.getLongPollUrl()
 
-proc mainLoop(bot: VkBot) {.async.} =
+proc mainLoop(bot: VkBot) {.async.} = 
   ## Главный цикл бота (тут происходит получение новых событий)
   running = true
   var http = newAsyncHttpClient()
@@ -201,19 +200,19 @@ proc mainLoop(bot: VkBot) {.async.} =
       failed = jsonData.getOrDefault("failed")
     # Если у нас есть поле failed - значит произошла какая-то ошибка
     if failed != nil:
-      let failNum = int failed.getNum()
+      let failNum = int failed.num
       if failNum == 1:
-        bot.lpData.ts = int jsonData["ts"].getNum()
+        bot.lpData.ts = jsonData["ts"].num
       else:
         await bot.initLongPolling(failNum)
       continue
-    # Такое может случиться
+    # Такое может случиться (если поля updates нет вообще)
     if not jsonData.contains("updates"): continue
     for event in jsonData["updates"]:
       # Делим каждое событие на его тип и на информацию о нём
       let
-        elems = event.getElems()
-        (eventType, eventData) = (elems[0].getNum(), elems[1..^1])
+        elems = event.elems
+        (eventType, eventData) = (elems[0].num, elems[1..^1])
 
       case eventType:
         # Код события 4 - у нас новое сообщение
@@ -223,7 +222,7 @@ proc mainLoop(bot: VkBot) {.async.} =
         else:
           discard
     # Обновляем метку времени
-    bot.lpData.ts = int jsonData["ts"].getNum()
+    bot.lpData.ts = jsonData["ts"].num
     
 
 proc startBot(bot: VkBot) {.async.} =
@@ -259,4 +258,4 @@ when isMainModule:
 
   asyncCheck bot.startBot()
   # Запускаем бесконечный асинхронный цикл (пока не будет нажата Ctrl+C)
-  asyncdispatch.runForever()
+  runForever()

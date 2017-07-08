@@ -6,7 +6,7 @@ type
   LongPollData* = object
     key*: string  # Ключ сервера 
     server*: string  # URL сервера
-    ts*: int64  # Последняя метка времени
+    ts*: BiggestInt  # Последняя метка времени
   
   Attachment* = tuple[kind, oid, id, token, link: string]
 
@@ -17,7 +17,8 @@ type
   
   Command* = object
     name*: string  # Сама команда
-    args*: seq[string]  # Последовательность аргументов
+    args*: seq[string]  # Аргументы
+  
   # Тип сообщения - из беседы или из ЛС
   MessageKind* = enum msgPriv, msgConf
   Message* = ref object
@@ -28,7 +29,7 @@ type
     else: discard
     id*: int  # ID сообщения
     pid*: int  # ID отправителя (беседы или пользователя)
-    timestamp*: int  # Дата отправки
+    timestamp*: BiggestInt  # Дата отправки
     subject*: string  # Тема 
     cmd*: Command  # Объект команды для данного сообщения
     body*: string

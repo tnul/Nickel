@@ -18,7 +18,7 @@ proc giveMemes(api: VkApi, msg: Message, groupId: string) {.async.} =
     while photo == nil:
         let 
           # Отправляем API запрос
-          data = await api.callMethod("wall.get", values, needAuth = false)
+          data = await api.callMethod("wall.get", values, auth = false)
           attaches = data["items"][0].getOrDefault("attachments")
         # Если у поста есть аттачи
         if attaches != nil:

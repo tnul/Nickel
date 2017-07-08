@@ -3,9 +3,16 @@ import types
 import utils
 import sequtils
 import queues
+
+type
+  # Кортеж для обозначения нашего запроса к API через метод VK API - execute
+  MethodCall = tuple[myFut: Future[JsonNode], 
+                     name: string,
+                     params: StringTableRef]
+
 const
   # Для авторизации от имени пользователя мы используем 
-  # данные официального приложения ВК под iPhone
+  # данные официального приложения ВКонтакте под iPhone
   AuthScope = "all"
   ClientId = "3140623"
   ClientSecret = "VeWdmVclDCtn6ihuP1nt"
@@ -13,7 +20,7 @@ const
 proc encodePost(params: StringTableRef): string =
   ## Кодирует параметры $params для отправки POST запросом
   result = ""
-  # Кодируем ключ и значение для URL (только если есть параметры)
+  # Кодируем ключ и значение для URL (если есть параметры)
   if params != nil:
     for key, val in pairs(params):
       let 
@@ -22,7 +29,7 @@ proc encodePost(params: StringTableRef): string =
       result.add($enck & "=" & $encv & "&")
 
 proc postData*(client: AsyncHttpClient, url: string, 
-              params: StringTableRef):Future[AsyncResponse] {.async.} =
+               params: StringTableRef): Future[AsyncResponse] {.async.} =
   ## Делает POST запрос на {url} с параметрами {params}
   return await client.post(url, body=encodePost(params))
 
@@ -40,10 +47,14 @@ proc login*(login, password: string): string =
     # Кодируем параметры через url encode
     body = encodePost(authParams)
     # Посылаем запрос
-    data = client.postContent("https://oauth.vk.com/token", body=body)
+  try:
+    let data = client.postContent("https://oauth.vk.com/token", body=body)
     # Получаем наш authToken
-  result = data.parseJson()["access_token"].str
-
+    result = data.parseJson()["access_token"].str
+  except OSError:
+    error("Не могу авторизоваться, скорее всего нет доступа к интернету!")
+    quit(1)
+  
 proc newApi*(c: BotConfig): VkApi =
   ## Создаёт новый объект VkAPi и возвращает его
   # Создаём токен (либо авторизуем пользователя, либо берём из конфига)
@@ -51,12 +62,8 @@ proc newApi*(c: BotConfig): VkApi =
   # Возвращаем результат
   result = VkApi(token: token, fwdConf: c.forwardConf)
 
-proc `token=`*(api: VkApi, token: string) =
-  ## Устанавливает токен для использования в API запросах
-  api.token = token
-
-
 proc toExecute(methodName: string, params: StringTableRef): string {.inline.} = 
+  ## Конвертирует вызов метода с параметрами в формат, необходимый для execute
   # Если нет параметров, нам не нужно их обрабатывать
   if params.len == 0:
     return "API." & methodName & "()"
@@ -68,33 +75,27 @@ proc toExecute(methodName: string, params: StringTableRef): string {.inline.} =
   # Возвращаем полный вызов к API с именем метода и параметрами
   return "API." & methodName & "({" & keyValSeq.join(", ") & "})"
 
-type
-  # Кортеж для обозначения нашего запроса к API через метод VK API - execute
-  MethodCall = tuple[myFut: Future[JsonNode], 
-                     name: string,
-                     params: StringTableRef]
-
 # Создаём очередь запросов (по умолчанию делаем её из 32 элементов)
 var requests = initQueue[MethodCall](32)
 
-proc callMethod*(api: VkApi, methodName: string, params: StringTableRef = nil,
-                 needAuth = true, flood = false, 
-                 useExecute = true): Future[JsonNode] {.async.} =
-  ## Отправляет запрос к методу {methodName} с параметрами  {params} типа JsonNode
-  ## и допольнительным {token} (по умолчанию - через execute)
+proc callMethod*(api: VkApi, methodName: string,
+                 params: StringTableRef = nil, auth = true, flood = false, 
+                 execute = true): Future[JsonNode] {.async.} = 
+  ## Отправляет запрос к методу {methodName} с параметрами {params}
+  ## и дополнительным {token} (по умолчанию отправляет его через execute)
   const
     BaseUrl = "https://api.vk.com/method/"
   
   let
     http = newAsyncHttpClient()
-    # Если нужна авторизация апи - используем токен апи, иначе - пустой токен
-    token = if likely(needAuth): api.token else: ""
+    # Используем токен только если для этого метода он нужен
+    token = if likely(auth): api.token else: ""
     # Создаём URL
     url = BaseUrl & "$1?access_token=$2&v=5.63&" % [methodName, token]
   # Переменная, в которую записывается ответ от API в JSON
   var jsonData: JsonNode
   # Если нужно использовать execute
-  if likely(useExecute):
+  if likely(execute):
     # Создаём future для получения информации
     let apiFuture = newFuture[JsonNode]("callMethod")
     # Добавляем его в очередь запросов
@@ -124,10 +125,11 @@ proc callMethod*(api: VkApi, methodName: string, params: StringTableRef = nil,
     # Если есть какая-то ошибка
     if error != nil:
       case error["error_code"].getNum():
-      # Flood error - слишком много одинаковых сообщений
+      # Слишком много одинаковых сообщений
       of 9:
         # await api.apiLimiter()
-        return await callMethod(api, methodName, params, needAuth, flood = true)
+        return await callMethod(api, methodName, params, auth, flood = true)
+      # Капча
       of 14:
         # TODO: Обработка капчи
         let 
@@ -141,12 +143,14 @@ proc callMethod*(api: VkApi, methodName: string, params: StringTableRef = nil,
         error("Ошибка при вызове $1 - $2\n$3" % [methodName, error["error_msg"].str, $jsonData])
         
     else:
+      # Если нет ошибки и поля response, просто возвращаем ответ
       return jsonData
   # Возвращаем пустой JSON объект
   return  %*{}
 
 proc executeCaller*(api: VkApi) {.async.} = 
-  ## Бесконечный цикл, проверяет последовательность requests
+  ## Бесконечный цикл, проверяет последовательность запросов requests 
+  ## для их выполнения через execute
   while true:
     # Спим 350 мс
     await sleepAsync(350)
@@ -165,16 +169,15 @@ proc executeCaller*(api: VkApi) {.async.} =
     while requests.len != 0 and count != 0:
       # Получаем самый старый элемент
       let (fut, name, params) = requests.pop()
-      # Добавляем в items его вызов в виде строки VKScript
+      # Добавляем в items вызов метода в виде строки кода VKScript
       items.add name.toExecute(params)
       futures.add(fut)
       # Уменьшаем количество доступных запросов
       dec count
-    # Составляем код VK Script
+    # Составляем общий код VK Script
     let code = "return [" & items.join(", ") & "];"
-    # Отправляем запрос execute
-    let answer = await api.callMethod("execute", {"code": code}.toApi,
-                                      useExecute = false)
+    # Отправляем запрос (false - не отправлять его самого через execute)
+    let answer = await api.callMethod("execute", {"code": code}.toApi, execute = false)
     # Проходимся по результатам и futures
     for data in zip(answer.getElems(), futures):
       let (item, fut) = data
@@ -229,17 +232,17 @@ proc attaches*(msg: Message, vk: VkApi): Future[seq[Attachment]] {.async.} =
       # Проходимся по всем полям аттача
       for k, v in pairs(attach):
         if "photo_" in k:
-          # Парсим разрешение фотки
+          # Парсим разрешение фотографии
           let photoRes = parseInt(k[6..^1])
-          # Если оно выше, чем разрешение полученных ранее фоток, используем его
+          # Если оно выше, чем остальные, берём используем его
           if photoRes > biggestRes:
             biggestRes = photoRes
             link = v.str
     let
       # Если есть access_key - добавляем его, иначе - ничего не добавляем
       key = if "access_key" in attach: attach["access_key"].str else: ""
-      resAttach = (typ, $attach["owner_id"].getNum(), 
-                  $attach["id"].getNum(), key, link)
+      resAttach = (typ, $attach["owner_id"].num, 
+                  $attach["id"].num, key, link)
     # Добавляем аттач к результату
     result.add(resAttach)
   msg.doneAttaches = result
@@ -249,6 +252,6 @@ proc answer*(api: VkApi, msg: Message, body: string, attaches = "") {.async.} =
   let data = {"message": body, "peer_id": $msg.pid}.toApi
   # Если это конференция, пересылаем то сообщение, на которое мы ответили
   if msg.kind == msgConf and api.fwdConf: data["forward_messages"] = $msg.id
-  # Если есть какие-то аттачи, добавляем их в значения для API
+  # Если есть какие-то аттачи, добавляем их
   if attaches.len > 0: data["attachment"] = attaches
   discard await api.callMethod("messages.send", data)
