@@ -112,7 +112,7 @@ proc processLpMessage(bot: VkBot, event: seq[JsonNode]) {.async.} =
   let processResult = bot.processMessage(message)
   yield processResult
   # Если сообщение не удалось обработать
-  if unlikely(processResult.failed):
+  if processResult.failed:
     let rnd = antiFlood() & "\n"
     # Сообщение, котороые мы пошлём
     var errorMessage = rnd & bot.config.errorMessage & "\n"
@@ -237,7 +237,7 @@ proc gracefulShutdown() {.noconv.} =
   quit(0)
 
 when isMainModule:
-  when defined(windows):
+  when defined(windows) and not defined(gui):
      # Если мы на Windows - устанавливаем кодировку UTF-8 при запуске бота
     discard execShellCmd("chcp 65001")
     # И очищаем консоль

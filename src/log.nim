@@ -12,6 +12,13 @@ proc log*(level: Level, data: string) =
   else:
     logger.log(level, data)
 
+proc fatalError*(data: string) = 
+  when defined(gui):
+    alert(data)
+  else:
+    log(lvlFatal, data)
+  quit()
+
 proc log*(msg: Message, command = false) = 
   ## Логгирует объект сообщения в консоль
   let frm = "https://vk.com/id" & $msg.pid

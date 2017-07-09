@@ -36,14 +36,14 @@ module "&#128221;", "Блокнот":
         answer "Я ничего не вспомнил"
     of "запиши":
       # Если меньше двух аргументов - значит нам не прислали саму инфу
-      if unlikely(len(args) < 2):
+      if args.len < 2:
         answer "Что нужно записать в блокнот?"
         return
       else:
         # Получаем данные для сохранения и сохраняем их
         let info = args[1..^1].join(" ")
         # Добавлям данные
-        add($msg.pid, "\n\n" & utils.getMoscowTime() & " по МСК" & "\n" & info)
+        add($msg.pid, "\n\n" & utils.getMoscowTime() & " по МСК\n" & info)
         answer "Таааак... Всё, записал!"
     else:
       answer usage

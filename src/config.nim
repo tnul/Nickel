@@ -35,37 +35,31 @@ prefixes = "бот|бот, |"
 # lvlError 
 # lvlFatal
 # lvlNone
-format = "[$time][$levelid] "  # https://nim-lang.org/docs/logging.html
+format = "[$time][$levelid] " # https://nim-lang.org/docs/logging.html
 level = lvlInfo
-errors = True  # Нужно ли писать ошибки вместе с логом в консоль?
+errors = True  # Нужно ли писать ошибки вместе с логом?
 messages = True  # Нужно ли логгировать сообщения? True/False
 commands = True  # Нужно ли логгировать команды? True/False
 
 """
 
-  FileCreatedMessage = """Был создан файл settings.ini. Пожалуйста
+  FileCreatedMessage = """Был создан файл settings.ini. Пожалуйста, 
 измените настройки на свои!"""
 
-  NoTokenMessage = "Вы не указали токен группы в settings.ini!"
+  NoLoginMessage = "Вы не указали данные для входа в settings.ini!"
 
   ConfigLoadMessage = """Не удалось загрузить конфигурацию. 
-Если у вас есть settings.ini, попробуйте его удалить и запустить бота заново"""
+Если у вас есть settings.ini, попробуйте его удалить и запустить бота заново."""
 
   LoadMessage = "Загрузка настроек из settings.ini"
-
-
-
 
 proc parseConfig*(): BotConfig =
   ## Парсинг settings.ini, создаёт его, если его нет, возвращает объект конфига
   if not existsFile("settings.ini"):
     open("settings.ini", fmWrite).write(DefaultSettings)
-    notice(FileCreatedMessage)
-    quit()
+    fatalError(FileCreatedMessage)
   try:
-    let 
-      # Загружаем конфиг и получаем значения из него
-      data = loadConfig("settings.ini")
+    let data = loadConfig("settings.ini")
     var prefixes = data.getSectionValue("Messages", "prefixes").split("|")
     # Сортируем по длине префикса, и переворачиваем последовательность, чтобы
     # самые длинные префиксы были в начале
@@ -99,21 +93,14 @@ proc parseConfig*(): BotConfig =
       )
     # Если в конфиге нет токена, или логин или пароль пустые - ошибка
     if c.token == "" and (c.login == "" or c.password == ""):
-      when not defined(gui):
-        fatal(NoTokenMessage)
-      else:
-        alert(NoTokenMessage)
-      quit()
-    
+      fatalError(NoLoginMessage)    
     logger.levelThreshold = parseEnum[Level](data.getSectionValue("Logging", "level"))
     logger.fmtStr = data.getSectionValue("Logging", "format")
-    when not defined(gui): warn(LoadMessage) else: alert(LoadMessage)
+    log(lvlWarn, LoadMessage)
     return c
   except:
     # Если произошла какая-то ошибка при загрузке конфига
-    when not defined(gui): fatal(ConfigLoadMessage) else: alert(ConfigLoadMessage)
-    quit()
-
+    fatalError(ConfigLoadMessage & "\nОшибка: " & getCurrentExceptionMsg())
 
 proc log*(c: BotConfig) =
   ## Выводит объект настроек бота $config

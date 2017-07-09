@@ -102,7 +102,7 @@ proc te_free(n: ptr te_expr) {.cdecl, importc.}
 
 proc isNaN*(s: float): bool =
   ## Returns true if float is nan
-  if unlikely(s.classify == fcNan):
+  if s.classify == fcNan:
     return true
   else:
     return false
@@ -121,7 +121,7 @@ proc teAnswer*(s: string): string =
   ## For NaN returns empty string
   let answer = round(teInterp(s), 10)
   
-  if unlikely(answer.isNaN):
+  if answer.isNaN:
     result = ""
   # If float ends with ".0", we can omit ".0"
   elif ($answer)[^2..^1] == ".0":

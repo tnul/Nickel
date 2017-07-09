@@ -89,13 +89,13 @@ proc callMethod*(api: VkApi, methodName: string,
   let
     http = newAsyncHttpClient()
     # Используем токен только если для этого метода он нужен
-    token = if likely(auth): api.token else: ""
+    token = if auth: api.token else: ""
     # Создаём URL
     url = BaseUrl & "$1?access_token=$2&v=5.63&" % [methodName, token]
   # Переменная, в которую записывается ответ от API в JSON
   var jsonData: JsonNode
   # Если нужно использовать execute
-  if likely(execute):
+  if execute:
     # Создаём future для получения информации
     let apiFuture = newFuture[JsonNode]("callMethod")
     # Добавляем его в очередь запросов
@@ -117,7 +117,7 @@ proc callMethod*(api: VkApi, methodName: string,
   
   let response = jsonData.getOrDefault("response") 
   # Если есть секция response - нам нужно вернуть ответ из неё
-  if likely(response != nil):
+  if response != nil:
     return response
   # Иначе - проверить на ошибки, и просто вернуть ответ, если всё хорошо
   else:
