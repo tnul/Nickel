@@ -13,7 +13,8 @@ import random  # генерациЯ анти-флуда
 import strutils  # Работа со строками
 import asyncdispatch  # Асинхронность
 import future  # Экспериментальные функции
-
 # Свои модули
+when defined(gui):
+  import gui
 import log
 import types

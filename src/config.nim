@@ -51,7 +51,7 @@ commands = True  # Нужно ли логгировать команды? True/F
   ConfigLoadMessage = """Не удалось загрузить конфигурацию. 
 Если у вас есть settings.ini, попробуйте его удалить и запустить бота заново"""
 
-  LoadMessage = "Загрузка настроек из settings.ini:"
+  LoadMessage = "Загрузка настроек из settings.ini"
 
 
 
@@ -99,16 +99,19 @@ proc parseConfig*(): BotConfig =
       )
     # Если в конфиге нет токена, или логин или пароль пустые - ошибка
     if c.token == "" and (c.login == "" or c.password == ""):
-      fatal(NoTokenMessage)
+      when not defined(gui):
+        fatal(NoTokenMessage)
+      else:
+        alert(NoTokenMessage)
       quit()
     
     logger.levelThreshold = parseEnum[Level](data.getSectionValue("Logging", "level"))
     logger.fmtStr = data.getSectionValue("Logging", "format")
-    warn(LoadMessage)
+    when not defined(gui): warn(LoadMessage) else: alert(LoadMessage)
     return c
   except:
     # Если произошла какая-то ошибка при загрузке конфига
-    fatal(ConfigLoadMessage)
+    when not defined(gui): fatal(ConfigLoadMessage) else: alert(ConfigLoadMessage)
     quit()
 
 

@@ -1,6 +1,5 @@
 include baseimports
 import sequtils  # Работа с последовательностями
-
 # Свои модули
 import utils  # Макрос unpack (взят со stackoverflow)
 import types  # Общие типы бота
@@ -241,7 +240,7 @@ when isMainModule:
   when defined(windows):
      # Если мы на Windows - устанавливаем кодировку UTF-8 при запуске бота
     discard execShellCmd("chcp 65001")
-    # Очищаем консоль
+    # И очищаем консоль
     discard execShellCmd("cls")
   # Парсим конфиг
   let cfg = parseConfig()
@@ -258,4 +257,7 @@ when isMainModule:
 
   asyncCheck bot.startBot()
   # Запускаем бесконечный асинхронный цикл (пока не будет нажата Ctrl+C)
-  runForever()
+  when not defined(gui):
+    runForever()
+  else:
+    runGui()

@@ -1,5 +1,4 @@
 # Очень рекомендуется include'ить этот файл во все плагины
-{.experimental.}
 import ../types  # типы данных
 import ../vkapi  # VK API
 import ../command  # Процедура handle

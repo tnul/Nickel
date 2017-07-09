@@ -1,9 +1,16 @@
 include baseimports
 import logging
 import macros
+
 var logger* = newConsoleLogger()
 addHandler(logger)
 export logging
+
+proc log*(level: Level, data: string) = 
+  when defined(gui):
+    guiLog.addLine(data)
+  else:
+    logger.log(level, data)
 
 proc log*(msg: Message, command = false) = 
   ## Логгирует объект сообщения в консоль
@@ -15,13 +22,13 @@ proc log*(msg: Message, command = false) =
       args = "с аргументами " & $msg.cmd.args
     else:
       args = "без аргументов"
-    info("$1 > Команда `$2` $3" % [frm, msg.cmd.name, args])
+    log(lvlInfo, "$1 > Команда `$2` $3" % [frm, msg.cmd.name, args])
   else:
-    debug("Сообщение `$1` от $2" % [msg.body, frm])
+    log(lvlDebug, "Сообщение `$1` от $2" % [msg.body, frm])
 
 macro logWithLevel*(lvl: Level, body: untyped): untyped = 
   result = newStmtList()
   for elem in body:
     let data = quote do:
-      logging.log(`lvl`, `elem`)
+      log(`lvl`, `elem`)
     result.add data
