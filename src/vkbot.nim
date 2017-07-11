@@ -259,5 +259,6 @@ when isMainModule:
   # Запускаем бесконечный асинхронный цикл (пока не будет нажата Ctrl+C)
   when not defined(gui):
     runForever()
+  # Запускаем GUI
   else:
-    runGui()
+    app.run()

@@ -1,27 +1,25 @@
 include base
 import httpclient, encodings, math, times
 
-const Url = "http://api.fixer.io/latest?base="
+const Url = "http://api.fixer.io/latest?base=RUB"
 
 var 
   data = ""
   lastTime = epochTime()
 
+let client = newAsyncHttpClient()
+
 proc getData(): Future[string] {.async.} =
-  # Если у нас сохранены данные и прошло меньше 30 минут (30*60=1800)
-  if data.len > 0 and (epochTime() - lastTime) <= 1800.0:
-    # Возвращаеv кешированные данные
+  # Если у нас сохранены данные и прошло меньше 30 минут
+  if data.len > 0 and (epochTime() - lastTime) <= 1800:
     return data
   # Иначе - получаем их
-  let client = newAsyncHttpClient()
+  let
+    rawData = await client.getContent(Url)
+    rates = parseJson(rawData)["rates"]
   var info = ""
   for curr in ["USD", "EUR", "GBP"]:
-    let
-      rawData = await client.getContent(Url & curr)
-      data = parseJson(rawData)["rates"]
-      # Обрезаем число до 2 знаков после запятой
-      rubleInfo = data["RUB"].getFNum.formatFloat(precision=4)
-    
+    let rubleInfo = rates[curr].fnum
     case curr:
       of "USD":
         info.add("Доллар: ")
@@ -31,7 +29,7 @@ proc getData(): Future[string] {.async.} =
         info.add("Английский фунт: ")
       else:
         discard
-    info.add(rubleInfo & " руб.\n")
+    info.add($round(1 / rubleInfo, 2) & " руб.\n")
   data = info
   return info
 

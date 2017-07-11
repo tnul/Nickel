@@ -6,15 +6,19 @@ var logger* = newConsoleLogger()
 addHandler(logger)
 export logging
 
+
 proc log*(level: Level, data: string) = 
   when defined(gui):
     guiLog.addLine(data)
   else:
     logger.log(level, data)
 
+template log*(data: string) = 
+  log(lvlAll, data)
+
 proc fatalError*(data: string) = 
   when defined(gui):
-    alert(data)
+    window.alert(data)
   else:
     log(lvlFatal, data)
   quit()
