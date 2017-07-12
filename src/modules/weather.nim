@@ -2,7 +2,6 @@ include base
 import httpclient, strutils, times, math, unicode
 
 const
-  DefaultCity = "Москва"
   # Очень желательно сменить этот ключ на свой!
   Key = "78b50ffaf45be011ccc5fccca4d836d8"
   ForecastUrlFormat = "http://api.openweathermap.org/data/2.5/forecast/daily?APPID=$1&lang=ru&q=$2&cnt=$3"
@@ -25,7 +24,7 @@ module "&#127782;", "Погода":
     let 
       client = newAsyncHttpClient()
     var
-      city = DefaultCity
+      city = "Москва"
       days = 0
       url: string
     # Если есть какие-то аргументы

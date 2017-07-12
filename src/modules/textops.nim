@@ -55,20 +55,15 @@ module "&#128394;", "Операции с текстом":
       Default = 5
       Max = 90
     var 
-      converted: seq[int]
+      count: int
       failed = false
     try:
-      converted = args.mapIt(it.parseInt)
+      count = args[0].parseInt
     except:
       failed = true
     if failed:
       answer usage
       return
-    var count: int
-    if converted.len < 1 or converted[0] < 0:
-      count = Default
-    elif converted[0] > Max:
-      count = Max
-    else:
-      count = converted[0]
+    if count < 0: count = Default
+    elif count > Max: count = Max
     answer LolWord.repeat(count)

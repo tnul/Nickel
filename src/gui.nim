@@ -1,17 +1,16 @@
+{.experimental.}
 import nigui, asyncdispatch
 export nigui
+
 app.init()
-var window* = newWindow("Nickel - бот для ВКонтакте")
 
-window.width = 800
-window.height = 600
-var container = newLayoutContainer(LayoutVertical)
+genui:
+  {var tempwin = @result} Window[width = 800, height = 600]("Nickel - бот для ВКонтакте"):
+    LayoutContainer(Layout_Vertical):
+      {var temptext = @result} TextArea()
 
-window.add(container)
-
-var guiLog* = newTextArea()
-
-container.add(guiLog)
+var window* = tempwin
+var guiLog* = temptext
 
 proc runBot(event: TimerEvent) =
   # Если есть задачи, которые нужно обработать

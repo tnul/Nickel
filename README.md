@@ -1,4 +1,4 @@
-Nickel (Никель) [![Присоединись к чату на https://gitter.im/NickelVK/Lobby](https://badges.gitter.im/NickelVK/Lobby.svg)](https://gitter.im/NickelVK/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge) [![Travis CI](https://travis-ci.org/VKBots/Nickel.svg?branch=master)](https://travis-ci.org/TiberiumN/Nickel) [![App Veyor](https://ci.appveyor.com/api/projects/status/futyiif4dq7blmof/branch/master?svg=true)](https://ci.appveyor.com/project/TiberiumPY/nickelvk/branch/master)
+Nickel (Никель) 
 ======
 
 Чат-бот для ВКонтакте в ранней стадии разработки, написанный на языке Nim.
@@ -23,7 +23,6 @@ Nickel (Никель) [![Присоединись к чату на https://gitte
 - [x] Рассказать шутку (берёт случайную цитату с https://bash.im) - `пошути`
 - [x] Выключение (Выключает бота, если команду послал администратор бота) - `выключись`
 - [x] Калькулятор - `посчитай 1+1`
-- [x] Интеграция с iii.ru - `сеть привет`
 - [x] Переворачивание текста (после получения ответа от бота нужно обновить страницу) - `переверни Привет!`
 - [x] Генератор АЗХ - `лол 10`
 - [x] Получение погоды - `погода в Москве завтра`

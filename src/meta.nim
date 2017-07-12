@@ -2,8 +2,8 @@
 import macros
 import strutils
 import sequtils
-import command
 # Свои модули
+import command
 import utils
 import vkapi
 import types
@@ -14,7 +14,7 @@ var count {.compiletime.} = 1
 
 macro command*(cmds: varargs[string], body: untyped): untyped =
   let 
-    # Создаём уникальное имя для процедура
+    # Создаём уникальное имя для процедуры
     uniqName = newIdentNode("handler" & $count)
   var 
     usage = ""
@@ -70,54 +70,11 @@ macro command*(cmds: varargs[string], body: untyped): untyped =
     handle(`uniqName`, cmds)
 
 macro module*(names: varargs[string], body: untyped): untyped = 
-  # Add 
+  # Добавляем в модули имя нашего модуля (все строки объединённые с пробелом)
   modules.add names.mapIt(it.strVal).join(" ")
   result = newStmtList()
   for i in 0..<len(body):
     result.add(body[i])
-  
-#[ 
-macro vk*(b: untyped): untyped = 
-  var apiCall = ""
-  for i in 0..<b[0].len:
-    let part = b[0][i]
-    apiCall &= $part & "."
-  # Remove `.` at the end
-  apiCall = apiCall[0..^1]
-  result = quote do:
-    api.callMethod(`apiCall`, )
-]#
-
-macro vk*(call: untyped): untyped = 
-  expectKind call, nnkCall
-  let
-    meth = call[0]
-  expectKind meth, nnkDotExpr
-  let methodStr = meth.mapIt($it).join(".")
-  if call.len < 1:
-    # Without arguments
-    return quote do:
-      api.callMethod(`methodStr`)
-  let tabl = newNimNode(nnkTableConstr)
-  for i in 1..<call.len:
-    let 
-      arg = call[i]
-      key = $arg[0]
-      val = arg[1]
-    let colonExpr = newNimNode(nnkExprColonExpr)
-    colonExpr.add newStrLitNode(key)
-    case val.kind
-    of nnkIdent, nnkStrLit:
-      colonExpr.add val
-    of nnkIntLit:
-      colonExpr.add newLit($val.intVal)
-    of nnkFloatLit:
-      colonExpr.add newLit($val.floatVal)
-    else:
-      discard
-    tabl.add(colonExpr)
-  result = quote do:
-    api.callMethod(`methodStr`, params=`tabl`.toApi)
 
 template answer*(data: string, atch: string = "") {.dirty.} = 
   ## Отправляет сообщение $data пользователю
