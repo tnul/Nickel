@@ -238,30 +238,30 @@ proc mainLoop(bot: VkBot) {.async.} =
     
 
 proc getNameAndAvatar(bot: VkBot) {.async.} = 
-  
-  let 
-    methodName = if bot.config.token.len > 0: "groups.getById" else: "users.get"
-    params = {"fields": "photo_50"}.toApi
-    # Получаем информацию о текущем пользователе (и берём первый элемент)
-    data = (await bot.api.callMethod(methodName, params, execute = false))[0]
-    client = newAsyncHttpClient()
-  # Скачиваем аватар
-  await client.downloadFile(data["photo_50"].str, "avatar.png")
-  # Создаём новую картинку в GUI и загружаем аватар
-  var name: string
-  if bot.isGroup: 
-    name = "Группа " & data["name"].str 
-  else: 
-    name = "Пользователь " & data["first_name"].str & " " & data["last_name"].str
-  var avatar = newImage()
-  avatar.loadFromFile("avatar.png")
+  when defined(gui):
+    let 
+      methodName = if bot.config.token.len > 0: "groups.getById" else: "users.get"
+      params = {"fields": "photo_50"}.toApi
+      # Получаем информацию о текущем пользователе (и берём первый элемент)
+      data = (await bot.api.callMethod(methodName, params, execute = false))[0]
+      client = newAsyncHttpClient()
+    # Скачиваем аватар
+    await client.downloadFile(data["photo_50"].str, "avatar.png")
+    # Создаём новую картинку в GUI и загружаем аватар
+    var name: string
+    if bot.isGroup: 
+      name = "Группа " & data["name"].str 
+    else: 
+      name = "Пользователь " & data["first_name"].str & " " & data["last_name"].str
+    var avatar = newImage()
+    avatar.loadFromFile("avatar.png")
 
-  # Добавляем картинку в прорисовку
-  avatarControl.onDraw = proc (event: DrawEvent) = 
-    let canv = event.control.canvas
-    canv.drawImage(avatar, 0, 0)
-  # Изменяем текст в GUI
-  loggedAs.text = name
+    # Добавляем картинку в прорисовку
+    avatarControl.onDraw = proc (event: DrawEvent) = 
+      let canv = event.control.canvas
+      canv.drawImage(avatar, 0, 0)
+    # Изменяем текст в GUI
+    loggedAs.text = name
 
 proc startBot(bot: VkBot) {.async.} =
   ## Инициализирует Long Polling и запускает главный цикл бота
