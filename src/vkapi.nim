@@ -60,7 +60,7 @@ proc newApi*(c: BotConfig): VkApi =
   # Создаём токен (либо авторизуем пользователя, либо берём из конфига)
   let token = if c.login != "": login(c.login, c.password) else: c.token
   # Возвращаем результат
-  result = VkApi(token: token, fwdConf: c.forwardConf)
+  result = VkApi(token: token, fwdConf: c.forwardConf, isGroup: c.token.len > 0)
 
 proc toExecute(methodName: string, params: StringTableRef): string {.inline.} = 
   ## Конвертирует вызов метода с параметрами в формат, необходимый для execute

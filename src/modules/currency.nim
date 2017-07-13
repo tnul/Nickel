@@ -29,11 +29,11 @@ proc getData(): Future[string] {.async.} =
         info.add("Английский фунт: ")
       else:
         discard
-    info.add($round(1 / rubleInfo, 2) & " руб.\n")
+    info.add((1 / rubleInfo).formatFloat(precision = 4) & " руб.\n")
   data = info
   return info
 
 module "&#128177;", "Курсы валют":
-  command "курс", "валюта", "валюты", "доллар":
+  command "курс", "валюта", "валюты", "доллар", "евро", "фунт":
     usage = "курс - вывести курсы доллара, евро, фунта к рублю"
     answer await getData()

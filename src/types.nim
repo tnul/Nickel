@@ -50,13 +50,14 @@ type
   VkApi* = ref object
     token*: string  # Токен VK API
     fwdConf*: bool
-
+    isGroup*: bool
   
   VkBot* = ref object
     api*: VkApi  # Объект VK API
     lpData*: LongPollData  # Информация о сервере Long Pooling
     lpURL*: string  # URL сервера Long Pooling
     config*: BotConfig  # Конфигурация бота
+    isGroup*: bool
 
   ModuleFunction* = proc(api: VkApi, msg: Message): Future[void]
 
