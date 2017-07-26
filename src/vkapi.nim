@@ -48,13 +48,14 @@ proc login*(login, password: string): string =
     body = encodePost(authParams)
     # Посылаем запрос
   try:
-    let data = client.postContent("https://oauth.vk.com/token", body=body)
+    let data = client.postContent("https://oauth.vk.com/token", body = body)
     # Получаем наш authToken
     result = data.parseJson()["access_token"].str
   except OSError:
     error("Не могу авторизоваться, скорее всего нет доступа к интернету!")
     quit(1)
-  
+  log(lvlInfo, "Бот успешно авторизовался!")
+
 proc newApi*(c: BotConfig): VkApi =
   ## Создаёт новый объект VkAPi и возвращает его
   # Создаём токен (либо авторизуем пользователя, либо берём из конфига)
@@ -213,7 +214,7 @@ proc attaches*(msg: Message, vk: VkApi): Future[seq[Attachment]] {.async.} =
       # Сам аттач
       attach = rawAttach[typ]
     var
-      # Ссылка на аттач (ссылка на фотографию, документ, превью видео)
+      # Ссылка на аттач (на фотографию, документ, или видео)
       link = ""
     # Ищем ссылку на аттач
     case typ
@@ -221,7 +222,7 @@ proc attaches*(msg: Message, vk: VkApi): Future[seq[Attachment]] {.async.} =
       # Ссылка на документ
       link = attach["url"].str
     of "video":
-      # Ссылка с плеером видео (не работает от группы)
+      # Ссылка с плеером видео (не работает от имени группы)
       try:
         link = attach["player"].str
       except KeyError:

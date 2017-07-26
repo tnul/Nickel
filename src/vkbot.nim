@@ -13,12 +13,60 @@ importPlugins()  # Импортируем все модули из папки mo
 # Переменная для обозначения, работает ли главный цикл бота
 var running = false
 
+proc newBot(config: BotConfig): VkBot =
+  ## Возвращает новый объект VkBot на основе токена
+  let
+    api = newApi(config)
+    lpData = LongPollData()
+    isGroup = config.token.len > 0
+  # Запускаем бесконечный цикл отправки запросов через execute
+  asyncCheck api.executeCaller()
+  return VkBot(api: api, lpData: lpData, config: config, isGroup: isGroup)
+
 proc getLongPollUrl(bot: VkBot) =
   ## Получает URL для Long Polling на основе данных bot.lpData
   const 
     UrlFormat = "https://$1?act=a_check&key=$2&ts=$3&wait=25&mode=2&version=1"
   let data = bot.lpData
   bot.lpUrl = UrlFormat % [data.server, data.key, $data.ts]
+
+
+proc getLongPollApi(api: VkApi): Future[JsonNode] {.async.} = 
+  ## Возвращает значения Long Polling от VK API
+  const MaxRetries = 5  # Максимальнок кол-во попыток для запроса лонг пуллинга
+  let params = {"use_ssl":"1"}.toApi
+  # Пытаемся получить значения Long Polling'а (5 попыток)
+  for retry in 0..MaxRetries:
+    result = await api.callMethod("messages.getLongPollServer", 
+                                  params, execute = false)
+    # Если есть какие-то объекты в data, выходим из цикла
+    if result.len > 0:
+      break
+
+
+proc initLongPolling(bot: VkBot, failNum = 0) {.async.} =
+  ## Инициализирует данные или обрабатывает ошибку Long Polling сервера
+  let data = await bot.api.getLongPollApi()
+  case int(failNum)
+    # Первый запуск бота
+    of 0:
+      # Создаём новый объект Long Polling'а
+      bot.lpData = LongPollData()
+      # Нам нужно инициализировать все параметры - первый запуск
+      bot.lpData.server = data["server"].str
+      bot.lpData.key = data["key"].str
+      bot.lpData.ts = data["ts"].num
+    of 2:
+      ## Обновляем ключ
+      bot.lpData.key = data["key"].str
+    of 3:
+      ## Обновляем ключ и метку времени
+      bot.lpData.key = data["key"].str
+      bot.lpData.ts = data["ts"].num
+    else:
+      discard
+  # Обновляем URL Long Polling'а
+  bot.getLongPollUrl()
 
 proc processCommand(bot: VkBot, body: string): Command =
   ## Обрабатывает строку {body} и возвращает тип Command
@@ -104,8 +152,14 @@ proc processLpMessage(bot: VkBot, event: seq[JsonNode]) {.async.} =
     msgBody = text.str.replace("<br>", "\n")
     # Обрабатываем строку и создаём объект команды
     cmd = bot.processCommand(msgBody)
-    # Создаём объект Message
-    message = Message(
+  var fwdMessages = newSeq[string]()
+  # Если есть пересланные сообщения
+  if "fwd" in attaches:
+    for fwdMsg in attaches["fwd"].str.split(","):
+      let data = fwdMsg.split("_")
+      fwdMessages.add data[1]
+  # Создаём объект Message
+  let message = Message(
       # Тип сообщения - если есть поле "from" - беседа, иначе - ЛС
       kind: if attaches.contains("from"): msgConf else: msgPriv,
       id: int msgId.num,  # ID сообщения
@@ -114,6 +168,7 @@ proc processLpMessage(bot: VkBot, event: seq[JsonNode]) {.async.} =
       subject: subject.str,  # Тема сообщения
       cmd: cmd,  # Объект сообщения 
       body: text.str,  # Тело сообщения
+      fwdMessages: fwdMessages  # Пересланные сообщения
     )
   # Если это конференция, то добавляем ID пользователя, который
   # отправил это сообщение
@@ -136,53 +191,6 @@ proc processLpMessage(bot: VkBot, event: seq[JsonNode]) {.async.} =
       error("\n" & getCurrentExceptionMsg())
     # Отправляем сообщение об ошибке
     await bot.api.answer(message, errorMessage)
-
-proc newBot(config: BotConfig): VkBot =
-  ## Возвращает новый объект VkBot на основе токена
-  let
-    api = newApi(config)
-    lpData = LongPollData()
-    isGroup = config.token.len > 0
-  # Запускаем бесконечный цикл отправки запросов через execute
-  asyncCheck api.executeCaller()
-  return VkBot(api: api, lpData: lpData, config: config, isGroup: isGroup)
-
-
-proc getLongPollApi(api: VkApi): Future[JsonNode] {.async.} = 
-  ## Возвращает значения Long Polling от VK API
-  const MaxRetries = 5  # Максимальнок кол-во попыток для запроса лонг пуллинга
-  let params = {"use_ssl":"1"}.toApi
-  # Пытаемся получить значения Long Polling'а (5 попыток)
-  for retry in 0..MaxRetries:
-    result = await api.callMethod("messages.getLongPollServer", params)
-    # Если есть какие-то объекты в data, выходим из цикла
-    if result.len > 0:
-      break
-
-
-proc initLongPolling(bot: VkBot, failNum = 0) {.async.} =
-  ## Инициализирует данные или обрабатывает ошибку Long Polling сервера
-  let data = await bot.api.getLongPollApi()
-  case int(failNum)
-    # Первый запуск бота
-    of 0:
-      # Создаём новый объект Long Polling'а
-      bot.lpData = LongPollData()
-      # Нам нужно инициализировать все параметры - первый запуск
-      bot.lpData.server = data["server"].str
-      bot.lpData.key = data["key"].str
-      bot.lpData.ts = data["ts"].num
-    of 2:
-      ## Обновляем ключ
-      bot.lpData.key = data["key"].str
-    of 3:
-      ## Обновляем ключ и метку времени
-      bot.lpData.key = data["key"].str
-      bot.lpData.ts = data["ts"].num
-    else:
-      discard
-  # Обновляем URL Long Polling'а
-  bot.getLongPollUrl()
 
 proc mainLoop(bot: VkBot) {.async.} = 
   ## Главный цикл бота (тут происходит получение новых событий)
@@ -238,30 +246,30 @@ proc mainLoop(bot: VkBot) {.async.} =
     
 
 proc getNameAndAvatar(bot: VkBot) {.async.} = 
-  
-  let 
-    methodName = if bot.config.token.len > 0: "groups.getById" else: "users.get"
-    params = {"fields": "photo_50"}.toApi
-    # Получаем информацию о текущем пользователе (и берём первый элемент)
-    data = (await bot.api.callMethod(methodName, params, execute = false))[0]
-    client = newAsyncHttpClient()
-  # Скачиваем аватар
-  await client.downloadFile(data["photo_50"].str, "avatar.png")
-  # Создаём новую картинку в GUI и загружаем аватар
-  var name: string
-  if bot.isGroup: 
-    name = "Группа " & data["name"].str 
-  else: 
-    name = "Пользователь " & data["first_name"].str & " " & data["last_name"].str
-  var avatar = newImage()
-  avatar.loadFromFile("avatar.png")
+  when defined(gui):
+    let 
+      methodName = if bot.config.token.len > 0: "groups.getById" else: "users.get"
+      params = {"fields": "photo_50"}.toApi
+      # Получаем информацию о текущем пользователе (и берём первый элемент)
+      data = (await bot.api.callMethod(methodName, params, execute = false))[0]
+      client = newAsyncHttpClient()
+    # Скачиваем аватар
+    await client.downloadFile(data["photo_50"].str, "avatar.png")
+    # Создаём новую картинку в GUI и загружаем аватар
+    var name: string
+    if bot.isGroup: 
+      name = "Группа " & data["name"].str 
+    else: 
+      name = "Пользователь " & data["first_name"].str & " " & data["last_name"].str
+    var avatar = newImage()
+    avatar.loadFromFile("avatar.png")
 
-  # Добавляем картинку в прорисовку
-  avatarControl.onDraw = proc (event: DrawEvent) = 
-    let canv = event.control.canvas
-    canv.drawImage(avatar, 0, 0)
-  # Изменяем текст в GUI
-  loggedAs.text = name
+    # Добавляем картинку в прорисовку
+    avatarControl.onDraw = proc (event: DrawEvent) = 
+      let canv = event.control.canvas
+      canv.drawImage(avatar, 0, 0)
+    # Изменяем текст в GUI
+    loggedAs.text = name
 
 proc startBot(bot: VkBot) {.async.} =
   ## Инициализирует Long Polling и запускает главный цикл бота
@@ -287,6 +295,7 @@ when isMainModule:
   let cfg = parseConfig()
   # Выводим его значения (кроме логина, пароля, и токена)
   cfg.log()
+  log(lvlInfo, "Авторизация в ВК...")
   # Создаём новый объект бота на основе конфигурации
   let bot = newBot(cfg)
   # Устанавливаем хук на Ctrl+C, пока что бесполезен, но

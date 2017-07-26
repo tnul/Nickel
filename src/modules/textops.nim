@@ -2,6 +2,7 @@ include base
 import unicode, sequtils
 
 const
+  # Таблица для переворачивания символов
   FlipTable = {"a": "ɐ","b": "q", "c": "ɔ","d": "p", 
     "e": "ǝ","f": "ɟ", "g": "ƃ", "h": "ɥ",
     "i": "ı", "j": "ɾ", "k": "ʞ", "m": "ɯ",
@@ -31,14 +32,15 @@ module "&#128394;", "Операции с текстом":
     else:
       var res = ""
       # Проходимся по UTF8 символам в тексте
-      for x in utf8(text):
-        # Добавляем к результату символ + доп. коды
+      for x in text.utf8:
+        # Добавляем к результату символ + доп. коды (для зачёркивания)
         res.add x & "&#38;#0822;"
       answer res
   
   command "переверни":
     usage = "переверни <строка> - перевернуть строку"
     var data = text
+    # Переводим строку в нижний регистр и проходимся по UTF8 символам
     for letter in unicode.toLower(data.reversed).utf8:
       # Если ключ есть в нашей таблице
       if FlipTable.hasKey(letter): 
@@ -64,6 +66,5 @@ module "&#128394;", "Операции с текстом":
     if failed:
       answer usage
       return
-    if count < 0: count = Default
-    elif count > Max: count = Max
+    count = max(Default, min(count, Max))
     answer LolWord.repeat(count)

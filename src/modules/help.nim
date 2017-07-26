@@ -7,6 +7,6 @@ module "&#127384;", "Помощь":
     answer Result
   
   command "модули", "плагины":
-    usage = "модули - вывести список включённых модулей"
-    const Result = "Список встроенных модулей:\n\n" & modules.join("\n\n")
+    usage = "модули - вывести список всех модулей"
+    const Result = "Встроенные модули:\n\n" & modules.join("\n\n")
     answer Result

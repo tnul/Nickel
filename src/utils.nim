@@ -9,21 +9,21 @@ const
   # Таблица русских и английских символов (для конвертирования раскладки)
   English = ["Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P", "A", 
              "S", "D", "F", "G", "H", "J", "K", "L", "Z", "X", "C", 
-             "V", "B", "N", "M", "q", "w", "e", "r", "t", "y", "u", "i", 
-             "o", "p", "a", "s", "d", "f", "g", "h", "j", "k", "l", 
-             "z", "x", "c", "v", "b", "n", "m", ":", "^", "~", "`", 
-             "{", "[", "}", "]", "\"", "'", "<", ",", ">", ".", ";", 
-             "?", "/", "&", "@", "#", "$"]
+             "V", "B", "N", "M", "q", "w", "e", "r", "t", "y", "u", 
+             "i", "o", "p", "a", "s", "d", "f", "g", "h", "j", "k", 
+             "l", "z", "x", "c", "v", "b", "n", "m", ":", "^", "~", 
+             "`", "{", "[", "}", "]", "\"", "'", "<", ",", ">", ".", 
+             ";", "?", "/", "&", "@", "#", "$"]
     
   Russian = ["Й", "Ц", "У", "К", "Е", "Н", "Г", "Ш", "Щ", "З", "Ф", 
              "Ы", "В", "А", "П", "Р", "О", "Л", "Д", "Я", "Ч", "С", 
-             "М", "И", "Т", "Ь", "й", "ц", "у", "к", "е", "н", "г", "ш", 
-             "щ", "з", "ф", "ы", "в", "а", "п", "р", "о", "л", "д", 
-             "я", "ч", "с", "м", "и", "т", "ь", "Ж", ":", "Ё", "ё", 
-             "Х", "х", "Ъ", "ъ", "Э", "э", "Б", "б", "Ю", "ю", "ж", 
-             ",", ".", "?", "'", "№", ";"]
+             "М", "И", "Т", "Ь", "й", "ц", "у", "к", "е", "н", "г", 
+             "ш", "щ", "з", "ф", "ы", "в", "а", "п", "р", "о", "л", 
+             "д", "я", "ч", "с", "м", "и", "т", "ь", "Ж", ":", "Ё", 
+             "ё", "Х", "х", "Ъ", "ъ", "Э", "э", "Б", "б", "Ю", "ю", 
+             "ж", ",", ".", "?", "'", "№", ";"]
 
-template convert(data:string, frm, to: untyped): untyped =
+template convert(data: string, frm, to: openarray[string]): untyped =
   result = ""
   # Проходимся по UTF8 символам в строке
   for x in utf8(data):
@@ -40,31 +40,25 @@ proc toEng*(data: string): string =
   ## Конвертирует строку в русской раскладке в английскую
   convert(data, Russian, English)
 
-# http://stackoverflow.com/questions/31948131/unpack-multiple-variables-from-sequence
 macro extract*(args: varargs[untyped]): typed =
-  ## assumes that the first expression is an expression
-  ## which can take a bracket expression. Let's call it
-  ## `arr`. The generated AST will then correspond to:
-  ##
-  ## let <second_arg> = arr[0]
-  ## let <third_arg>  = arr[1]
-  ## ...
+  ## Распаковывает последовательность или массив
+  ## Почти тоже самое, что "a, b, c, d = list" в питоне
+  ## Использование:
+  ## let a = @[1, 2, 3, 4, 5]
+  ## a.extract(one, two, three, four, five)
   result = newStmtList()
-  # the first vararg is the "array"
+  # Первый аргумент - сама последовательность или массив
   let arr = args[0]
   var i = 0
-  # all other varargs are now used as "injected" let bindings
+  # Все остальные аргументы - названия переменных
   for arg in args.children:
     if i > 0:
-      var rhs = newNimNode(nnkBracketExpr)
-      rhs.add(arr)
-      rhs.add(newIntLitNode(i-1))
-
-      let assign = newLetStmt(arg, rhs) # could be replaced by newVarStmt
-      result.add(assign)
+      # Добавляем код к результату
+      let code = quote do:
+        let `arg` = `arr`[`i` - 1]
+      result.add(code)
     inc i
-  #echo result.treerepr
-
+  
 # Имена файлов, которые не нужно импортировать автоматически
 const IgnoreFilenames = ["base.nim", "help.nim"]
 macro importPlugins*(): untyped =
@@ -84,13 +78,12 @@ macro importPlugins*(): untyped =
   # Проходимся по папке
   for kind, path in walkDir(folder):
     # Если это не файл
-    if kind != pcFile:
-      continue
+    if kind != pcFile: continue
     let
       # Разделитель для импорта
       separator = when defined(windows) and not defined(crosswin): r"\" else: "/"
       # Имя файла (делим справа максимум с 1 разделением)
-      filename = path.rsplit(separator, maxsplit=1)[1]
+      filename = path.rsplit(separator, maxsplit = 1)[1]
     # Если этот файл нужно игнорировать
     if filename in IgnoreFilenames:
       continue
@@ -110,7 +103,7 @@ macro importPlugins*(): untyped =
 proc toApi*(keyValuePairs: varargs[tuple[key, val: string]]): StringTableRef 
             {.inline.} = 
   ## Возвращает новую строковую таблицу, может использоваться
-  ## вот так: var info = {"message":"Hello", "peer_id": "123"}.toApi
+  ## вот так: let msg = {"message":"Hello", "peer_id": "123"}.toApi
   return newStringTable(keyValuePairs, modeCaseInsensitive)
 
 proc getMoscowTime*(): string =
@@ -119,7 +112,7 @@ proc getMoscowTime*(): string =
   return format(curTime, "d'.'M'.'yyyy HH':'mm':'ss")
 
 proc antiFlood*(): string =
-   ## Служит ля обхода анти-флуда Вконтакте (генерирует пять случайных букв)
+   ## Служит ля обхода анти-флуда ВК (генерирует пять случайных букв)
    const Alphabet = "ABCDEFGHIJKLMNOPQRSTUWXYZ"
    result = ""
    for x in 0..4:

@@ -8,30 +8,30 @@ const
 proc giveMemes(api: VkApi, msg: Message, groupId: string) {.async.} = 
     ## Получает случайную фотографию из постов группы с id groupId
     var 
-      photo: JsonNode = nil
+      pic: JsonNode
       values = {"owner_id": groupId,  # ID группы
-                "offset": $(random(1984) + 1),  # оффсет
-                "count": "1"  # кол-во записей 
+                "offset": $(random(1984) + 1),  # Оффсет
+                "count": "1"  # Кол-во записей 
                 }.toApi
       
-    # Пока мы не нашли фотографию
-    while photo == nil:
+    # Пока мы не нашли картинку
+    while pic == nil:
         let 
           # Отправляем API запрос
           data = await api.callMethod("wall.get", values, auth = false)
           attaches = data["items"][0].getOrDefault("attachments")
         # Если у поста есть аттачи
         if attaches != nil:
-            photo = attaches[0].getOrDefault("photo")
+            pic = attaches[0].getOrDefault("photo")
         # Берём другой случайный оффсет
         values["offset"] = $(random(1984)+1)
     let 
-      # ID владельца фото
-      oid = $photo["owner_id"].getNum()
-      # ID самого приложения
-      attachId = $photo["id"].getNum()
+      # ID владельца картинки
+      oid = $pic["owner_id"].getNum()
+      # ID самой карттинки
+      attachId = $pic["id"].getNum()
       # Access key может понадобиться, если группа закрытая 
-      accessKey = photo["access_key"].str
+      accessKey = pic["access_key"].str
       attachment = "photo$1_$2_$3" % [oid, attachId, accessKey]
     answer(random(Answers), attachment)
 

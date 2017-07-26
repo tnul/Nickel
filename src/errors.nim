@@ -2,10 +2,9 @@ include baseimports
 import utils, vkapi
 
 proc runCatch*(exec: ModuleFunction, bot: VkBot, msg: Message) = 
-  let future = exec(bot.api, msg)
+  var future = exec(bot.api, msg)
   future.callback =
-    # Анонимная функция
-    proc () =
+    proc () {.gcsafe.} =
       # Если future завершилась без ошибок - всё хорошо
       if not future.failed:
         return
@@ -21,8 +20,8 @@ proc runCatch*(exec: ModuleFunction, bot: VkBot, msg: Message) =
           # Если нужно, добавляем полный лог ошибки
           errorMessage &= "\n" & getCurrentExceptionMsg()
         if bot.config.logErrors:
-          #Если нужно писать ошибки в консоль
-          error("\n" & getCurrentExceptionMsg())
-        # Отправляем сообщение об ошибке
+          # Если нужно писать ошибки в лог
+          log(lvlError, "\n" & getCurrentExceptionMsg())
+        # Отправляем сообщение об ошибке (если нужно)
         if bot.config.reportErrors:
           asyncCheck bot.api.answer(msg, errorMessage)

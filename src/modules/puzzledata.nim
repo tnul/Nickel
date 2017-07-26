@@ -1,8 +1,8 @@
 include base
 import sequtils
 
-# Загружаем массив фактов из json файла и 
-# конвертируем в последовательность строк
+# Загружаем массив фактов из json файла и конвертируем в 
+# последовательность строк (сделано для уменьшения повторения кода)
 template jsonToSeq(filename: string): untyped = 
   parseFile(filename).getElems().mapIt(it.str)
 

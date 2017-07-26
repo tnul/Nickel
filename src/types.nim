@@ -33,6 +33,7 @@ type
     subject*: string  # Тема 
     cmd*: Command  # Объект команды для данного сообщения
     body*: string
+    fwdMessages*: seq[string]  # ID пересланных сообщений
     doneAttaches*: seq[Attachment]  # Приложения к сообщению
   
   BotConfig* = object
