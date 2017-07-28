@@ -19,6 +19,10 @@ type
     name*: string  # Сама команда
     args*: seq[string]  # Аргументы
   
+  ForwardedMessage* = object
+    msgId*: string  # ID сообщения
+    userId*: int  # ID пользователя
+  
   # Тип сообщения - из беседы или из ЛС
   MessageKind* = enum msgPriv, msgConf
   Message* = ref object
@@ -33,7 +37,7 @@ type
     subject*: string  # Тема 
     cmd*: Command  # Объект команды для данного сообщения
     body*: string
-    fwdMessages*: seq[string]  # ID пересланных сообщений
+    fwdMessages*: seq[ForwardedMessage]  # Пересланные сообщения
     doneAttaches*: seq[Attachment]  # Приложения к сообщению
   
   BotConfig* = object
@@ -47,6 +51,8 @@ type
     reportErrors*: bool
     logErrors*: bool
     fullReport*: bool
+    useCallback*: bool
+    confirmationCode*: string
   
   VkApi* = ref object
     token*: string  # Токен VK API

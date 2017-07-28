@@ -14,6 +14,10 @@ password = ""
 try_convert = True  # Пытаться ли переводить сообщения из английской в русскую раскладку?
 forward_conf = True  # Пересылать ли те сообщения, на которые отвечает бот в беседе
 
+[CallbackApi]
+use_callback = False  # Использовать ли Callback API (ТОЛЬКО ДЛЯ ГРУПП!)
+confirmation_code = "code"  # Код подтверждения Callback API
+
 [Errors]
 report_errors = True  # Нужно ли сообщать пользователям, когда в каком-то модуле произошла ошибка?
 full_errors = True  # Нужно ли отправлять пользователям весь лог ошибки?
@@ -89,7 +93,11 @@ proc parseConfig*(): BotConfig =
         # Логгировать ли ошибки в консоль
         logErrors: data.getSectionValue("Logging", "errors").parseBool,
         # Префиксы, с помощью которых можно выполнять команды
-        prefixes: prefixes
+        prefixes: prefixes,
+        # Использовать ли Callback API
+        useCallback: data.getSectionValue("CallbackApi", "use_callback").parseBool,
+        # Код для подтверждения Callback API
+        confirmationCode: data.getSectionValue("CallbackApi", "confirmation_code")
       )
     # Если в конфиге нет токена, или логин или пароль пустые - ошибка
     if c.token == "" and (c.login == "" or c.password == ""):

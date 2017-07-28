@@ -9,10 +9,15 @@ module "Хелперы":
     if msg.fwdMessages == @[]:
       answer usage
       return
-    let 
-      data = {"message_ids": msg.fwdMessages[0]}.toApi
-      info = await api.callMethod("messages.getById", data)
-    answer "ID этого пользователя - " & $info["items"][0]["user_id"].num
+    var id: int
+    if msg.fwdMessages[0].userId != 0:
+      id = msg.fwdMessages[0].userId
+    else:
+      let 
+        data = {"message_ids": msg.fwdMessages[0].msgId}.toApi
+        info = await api.callMethod("messages.getById", data)
+      id = int info["items"][0]["user_id"].num
+    answer "ID этого пользователя - " & $id
   
   command "сократи", "short", "сокр":
     usage = "сократи <ссылка> - сократить ссылку через vk.cc"

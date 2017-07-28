@@ -9,11 +9,8 @@ import strtabs  # Для некоторых методов JSON и для быс
 import os  # Операции ОС (открытие файла)
 import asyncdispatch  # Асинхронность
 import unicode  # Операции с юникодом
-import tables  # Параметры для API
-import cgi  # URL encoding
-import random  # генерациЯ анти-флуда
-import strutils  # Работа со строками
-import asyncdispatch  # Асинхронность
+import tables  # Параметры для API в виде таблиц
+import cgi  # URL кодирование строк
 # Свои модули
 import log
 import types
