@@ -1,5 +1,4 @@
-# Package
-version       = "0.0.4"
+version       = "0.1.0"
 author        = "Daniil Yarancev"
 description   = "VKBot - command bot for largest CIS social network - VKontakte"
 license       = "MIT"

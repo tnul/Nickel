@@ -22,10 +22,12 @@ proc processCallbackData(data: JsonNode) {.async.} =
   of "message_new":
     # Тело сообщения
     let msgBody = obj["body"].str
-    # Собираем user_id пересланных сообщений
+    # Собираем user_id пересланных сообщений (если они есть)
     var fwdMessages = newSeq[ForwardedMessage]()
-    for msg in obj["fwd_messages"].getElems():
-      fwdMessages.add ForwardedMessage(userId: int msg["user_id"].num)
+    let rawFwd = obj.getOrDefault("fwd_messages")
+    if rawFwd != nil:
+      for msg in rawFwd.getElems():
+        fwdMessages.add ForwardedMessage(userId: int msg["user_id"].num)
     
     # Создаём объект сообщения
     let message = Message(
