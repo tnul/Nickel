@@ -7,13 +7,13 @@ var savedData = newStringTable()
 
 proc restore(peerId: string): string = 
   # Если есть сохранённые данные, отдаём
-  return savedData.getOrDefault(peerId, default = "")
+  savedData.getOrDefault(peerId, default = "")
 
 proc add(peerId: string, data: string) = 
-  try:
+  if savedData.hasKey(peerId):
     # Добавляем к уже сохранным данным
     savedData[peerId] &= data
-  except KeyError:
+  else:
     # Создаём новую запись
     savedData[peerId] = data
 

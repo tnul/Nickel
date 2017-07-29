@@ -1,7 +1,7 @@
 # Файл с различными помощниками
 
 # Стандартная библиотека
-import macros, strtabs, times, strutils, random, os, sequtils, unicode
+import macros, strtabs, times, strutils, random, os, sequtils, unicode, cgi
 # Свои пакеты
 import types
 
@@ -32,13 +32,24 @@ template convert(data: string, frm, to: openarray[string]): untyped =
       continue
     result.add to[frm.find(x)]
 
+proc encode*(params: StringTableRef, isPost = true): string =
+  ## Кодирует параметры $params для отправки POST или GET запросом
+  result = if not isPost: "?" else: ""
+  # Кодируем ключ и значение для URL (если есть параметры)
+  if not params.isNil():
+    for key, val in pairs(params):
+      let 
+        enck = cgi.encodeUrl(key)
+        encv = cgi.encodeUrl(val)
+      result.add($enck & "=" & $encv & "&")
+
 proc toRus*(data: string): string = 
   ## Конвертирует строку в английской раскладке в русскую
-  convert(data, English, Russian)
+  data.convert(English, Russian)
 
 proc toEng*(data: string): string = 
   ## Конвертирует строку в русской раскладке в английскую
-  convert(data, Russian, English)
+  data.convert(Russian, English)
 
 macro extract*(args: varargs[untyped]): typed =
   ## Распаковывает последовательность или массив
@@ -59,7 +70,7 @@ macro extract*(args: varargs[untyped]): typed =
       result.add(code)
     inc i
   
-# Имена файлов, которые не нужно импортировать автоматически
+# Имена файлов, которые не нужно импортировать
 const IgnoreFilenames = ["base.nim", "help.nim"]
 macro importPlugins*(): untyped =
   result = newStmtList()

@@ -17,7 +17,7 @@ proc getLongPollUrl(bot: VkBot) =
 proc getLongPollApi(api: VkApi): Future[JsonNode] {.async.} = 
   ## Возвращает значения Long Polling от VK API
   const MaxRetries = 5  # Максимальнок кол-во попыток для запроса лонг пуллинга
-  let params = {"use_ssl":"1"}.toApi
+  let params = {"use_ssl":"1", "lp_version": "2"}.toApi
   # Пытаемся получить значения Long Polling'а (5 попыток)
   for retry in 0..MaxRetries:
     result = await api.callMethod("messages.getLongPollServer", 
@@ -58,14 +58,9 @@ proc processLpMessage(bot: VkBot, event: seq[JsonNode]) {.async.} =
   # Конвертируем число в set значений enum'а Flags
   let msgFlags = cast[set[Flags]](flags.num)
   # Если мы же и отправили это сообщение - его обрабатывать не нужно
-  if Flags.Outbox in msgFlags:
-    return
-
-  let
-    # ВК посылает Long Polling с <br>'ами вместо \n
-    msgBody = text.str.replace("<br>", "\n")
-    # Обрабатываем строку и создаём объект команды
-    cmd = bot.processCommand(msgBody)
+  if Flags.Outbox in msgFlags: return
+  # Заменяем <br> нормальными \n и обрабатываем команду
+  let cmd = bot.processCommand(text.str.replace("<br>", "\n"))
   var fwdMessages = newSeq[ForwardedMessage]()
   # Если есть пересланные сообщения
   if "fwd" in attaches:
@@ -79,7 +74,8 @@ proc processLpMessage(bot: VkBot, event: seq[JsonNode]) {.async.} =
       id: int msgId.num,  # ID сообщения
       pid: int peerId.num,  # ID отправителя
       timestamp: ts.num,  # Когда было отправлено сообщение
-      subject: subject.str,  # Тема сообщения
+      # Тема сообщения
+      subject: if attaches.contains("subject"): subject.str else: "",
       cmd: cmd,  # Объект команды 
       body: text.str,  # Тело сообщения
       fwdMessages: fwdMessages  # Пересланные сообщения
@@ -87,7 +83,7 @@ proc processLpMessage(bot: VkBot, event: seq[JsonNode]) {.async.} =
   # Если это конференция, то добавляем ID пользователя, который
   # отправил это сообщение
   if message.kind == msgConf:
-    message.cid = int attaches["from"].num
+    message.cid = attaches["from"].str.parseInt()
 
   asyncCheck bot.checkMessage(message)
   
@@ -104,11 +100,6 @@ proc mainLoop*(bot: VkBot) {.async.} =
     # Если произошла ошибка
     if req.failed:
       debug("Запрос к LP не удался, создаю новый объект HTTP клиента...")
-      #[Из-за бага стандартной библиотеки, если иметь 1 http клиент, он
-      крашится через 20-30 минут работы, поэтому мы инициализируем новый
-      клиент при каждой ошибке. Но это не ухудшает
-      производительность, так как newAsyncHttpClient() можно вызывать
-      примерно миллион раз в секунду, а мы его вызываем раз в 10-25 минут]#
       http = newAsyncHttpClient()
       continue
     let
@@ -131,7 +122,6 @@ proc mainLoop*(bot: VkBot) {.async.} =
       let
         elems = event.elems
         (eventType, eventData) = (elems[0].num, elems[1..^1])
-
       case eventType:
         # Код события 4 - у нас новое сообщение
         of 4:

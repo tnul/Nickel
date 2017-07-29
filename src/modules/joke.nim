@@ -2,8 +2,12 @@ include base
 import httpclient, encodings, streams, htmlparser, xmltree
 
 const 
-  Answers = ["А вот и шуточки подъехали", "Сейчас будет смешно, зуб даю",
-                 "Шуточки заказывали?", "Петросян в душе прям бушует :)"]
+  Answers = [
+    "А вот и шуточки подъехали", 
+    "Сейчас будет смешно, зуб даю",
+    "Шуточки заказывали?", 
+    "Петросян в душе прям бушует :)"
+  ]
   
   JokesUrl = "http://bash.im/random"
 
@@ -12,8 +16,7 @@ const
 proc getJoke(): Future[string] {.async.} =
   let 
     client = newAsyncHttpClient() 
-    resp = await client.getContent(JokesUrl)
-    jokeRaw = resp.convert("UTF-8", "CP1251")
+    jokeRaw = (await client.getContent(JokesUrl)).convert("UTF-8", "CP1251")
     jokeHtml = parseHtml(newStringStream(jokeRaw))
   
   result = ""

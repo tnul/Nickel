@@ -7,22 +7,20 @@ const
   Currencies = {
     "USD": "Доллар: ", 
     "EUR": "Евро: ", 
-    "GBP": "Английский фунт: "}.toTable
+    "GBP": "Английский фунт: "
+  }.toTable
 var 
   data = ""
   lastTime = epochTime()
 
-let client = newAsyncHttpClient()
-
 proc getData(): Future[string] {.async.} =
+  let client = newAsyncHttpClient()
   result = ""
   # Если у нас сохранены данные и прошло меньше 12 часов
   if data.len > 0 and (epochTime() - lastTime) <= 43200:
     return data
   # Иначе - получаем их
-  let
-    rawData = await client.getContent(Url)
-    rates = parseJson(rawData)["rates"]
+  let rates = parseJson(await client.getContent(Url))["rates"]
   for curr, text in Currencies.pairs:
     let rubleInfo = rates[curr].fnum
     # Добавляем название валюты

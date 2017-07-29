@@ -1,39 +1,30 @@
 include base
 import httpclient, cgi, sequtils, os
 
-proc encodeGet(params: StringTableRef): string = 
-  result = "?"
-  # Кодируем ключ и значение для URL
-  if params != nil:
-    for key, val in pairs(params):
-      let 
-        enck = cgi.encodeUrl(key)
-        encv = cgi.encodeUrl(val)
-      result.add($enck & "=" & $encv & "&")
+proc callApi(client: AsyncHttpClient, 
+             params: StringTableRef): Future[JsonNode] {.async.} = 
+  let 
+    urlQuery = encode(params, isPost = false)
+    url = "https://ru.wikipedia.org/w/api.php" & urlQuery
+  result = parseJson(await client.getContent(url))
 
-proc find(query: string): Future[string] {.async.} =
+proc find(client: AsyncHttpClient, query: string): Future[string] {.async.} =
   ## Ищёт строку $terms на Wikipedia и возвращает первую из возможных статей
   let
     # Параметры для вызовы API
     searchParams = {"action": "opensearch", 
                     "search": query, 
                     "format": "json"}.newStringTable()
-    # Кодируем наши параметры
-    urlQuery = encodeGet(searchParams)
-    # Создаём URL
-    url = "https://ru.wikipedia.org/w/api.php$1" % [urlQuery]
-    client = newAsyncHttpClient()
-    data = parseJson await client.getContent(url)
+    # Отправляем запрос
+    data = await client.callApi(searchParams)
   # Возвращаем самый первый результат (более всего вероятен)
-  let res = data[3].getElems().mapIt(it.`str`.split("wiki/")[1])[0]
+  let res = data[3].getElems().mapIt(it.`$`.split("wiki/")[1])[0]
   return cgi.decodeUrl(res)
 
-proc getInfo(name: string): Future[string] {.async.} =
-
+proc getInfo(client: AsyncHttpClient, name: string): Future[string] {.async.} =
   let
     # Получаем имя статьи
-    title = await find(name)
-    # Составляем параметры для MediaWiki API
+    title = await client.find(name)
     searchParams = {"action": "query",
                     "prop": "extracts",
                     "exintro": "",
@@ -41,11 +32,7 @@ proc getInfo(name: string): Future[string] {.async.} =
                     "titles": name,
                     "redirects": "1",
                     "format": "json"}.newStringTable()
-    # Кодируем параметры
-    urlQuery = encodeGet(searchParams)
-    url = "https://ru.wikipedia.org/w/api.php$1" % [urlQuery]
-    client = newHttpClient()
-    data = parseJson client.getContent(url)
+    data = await client.callApi(searchParams)
   # Проходимся по всем возможных результатам (но всё равно берём только первый)
   for key, value in data["query"]["pages"].getFields():
     # Если есть ключ "extract"
@@ -62,9 +49,10 @@ module "Википедия":
       answer usage
       return
     var data: string
+    let client = newAsyncHttpClient()
     try:
       # Пытаемся получить информацию
-      data = await getInfo(text)
+      data = await client.getInfo(text)
     except: 
       # Не получилось - такой статьи нет
       data = ""

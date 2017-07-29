@@ -13,7 +13,7 @@ type
   Flags* {.pure.} = enum  # Флаги события нового сообщения Long Polling
     Unread, Outbox, Replied, 
     Important, Chat, Friends, 
-    Spam, Deleted, Fixed, Media
+    Spam, Deleted, Fixed, Media, Hidden
   
   Command* = object
     name*: string  # Сама команда

@@ -17,21 +17,10 @@ const
   ClientId = "3140623"
   ClientSecret = "VeWdmVclDCtn6ihuP1nt"
 
-proc encodePost(params: StringTableRef): string =
-  ## Кодирует параметры $params для отправки POST запросом
-  result = ""
-  # Кодируем ключ и значение для URL (если есть параметры)
-  if params != nil:
-    for key, val in pairs(params):
-      let 
-        enck = cgi.encodeUrl(key)
-        encv = cgi.encodeUrl(val)
-      result.add($enck & "=" & $encv & "&")
-
 proc postData*(client: AsyncHttpClient, url: string, 
                params: StringTableRef): Future[AsyncResponse] {.async.} =
   ## Делает POST запрос на {url} с параметрами {params}
-  return await client.post(url, body=encodePost(params))
+  return await client.post(url, body=encode(params))
 
 proc login*(login, password: string): string = 
   # Входит в VK через login и password, используя данные Android приложения
@@ -45,7 +34,7 @@ proc login*(login, password: string): string =
   let 
     client = newHttpClient()
     # Кодируем параметры через url encode
-    body = encodePost(authParams)
+    body = encode(authParams)
     # Посылаем запрос
   try:
     let data = client.postContent("https://oauth.vk.com/token", body = body)
@@ -80,8 +69,8 @@ proc toExecute(methodName: string, params: StringTableRef): string {.inline.} =
 var requests = initQueue[MethodCall](32)
 
 proc callMethod*(api: VkApi, methodName: string,
-                 params: StringTableRef = nil, auth = true, flood = false, 
-                 execute = true): Future[JsonNode] {.async.} = 
+                 params: StringTableRef = nil, auth = true, 
+                 flood = false, execute = true): Future[JsonNode] {.async.} = 
   ## Отправляет запрос к методу {methodName} с параметрами {params}
   ## и дополнительным {token} (по умолчанию отправляет его через execute)
   const
@@ -92,7 +81,7 @@ proc callMethod*(api: VkApi, methodName: string,
     # Используем токен только если для этого метода он нужен
     token = if auth: api.token else: ""
     # Создаём URL
-    url = BaseUrl & "$1?access_token=$2&v=5.63&" % [methodName, token]
+    url = BaseUrl & "$1?access_token=$2&v=5.67&" % [methodName, token]
   # Переменная, в которую записывается ответ от API в JSON
   var jsonData: JsonNode
   # Если нужно использовать execute

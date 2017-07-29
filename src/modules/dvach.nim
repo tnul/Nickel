@@ -28,7 +28,7 @@ proc giveMemes(api: VkApi, msg: Message, groupId: string) {.async.} =
     let 
       # ID владельца картинки
       oid = $pic["owner_id"].getNum()
-      # ID самой карттинки
+      # ID самой картинки
       attachId = $pic["id"].getNum()
       # Access key может понадобиться, если группа закрытая 
       accessKey = pic["access_key"].str

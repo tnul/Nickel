@@ -3,7 +3,7 @@ import ../types  # типы данных
 import ../vkapi  # VK API
 import ../command  # Процедура handle
 import ../utils  # Утилиты
-import ../meta  # Метапрограммирование
+import ../dsl  # Метапрограммирование для модулей 
 import ../log  # Логгирование
 import json  # Парсинг JSON
 import strutils  # Строковые операции
