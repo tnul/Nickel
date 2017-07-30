@@ -10,9 +10,11 @@ module "Хелперы":
       answer usage
       return
     var id: int
+    # Если у нас есть user id в пересланных сообщениях (callback api)
     if msg.fwdMessages[0].userId != 0:
       id = msg.fwdMessages[0].userId
     else:
+      # Получаем user id через VK API
       let 
         data = {"message_ids": msg.fwdMessages[0].msgId}.toApi
         info = await api.callMethod("messages.getById", data)

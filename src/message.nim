@@ -21,8 +21,6 @@ proc processMessage*(bot: VkBot, msg: Message) {.async.} =
   var command = false
   # Увеличиваем счётчик сообщений
   inc msgCount
-  when defined(gui):
-    msgCountLabel.text = "Принято сообщений: " & $msgCount
   # TODO: Уменьшить повторение кода в обработке раскладки
   if commands.contains(cmdText):
     command = true
@@ -40,8 +38,6 @@ proc processMessage*(bot: VkBot, msg: Message) {.async.} =
   if command:
     # Увеличиваем счётчик команд
     inc cmdCount
-    when defined(gui):
-      cmdCountLabel.text = "Обработано команд: " & $cmdCount
     # Если нужно логгировать команды
     if bot.config.logCommands:
       msg.log(command = true)

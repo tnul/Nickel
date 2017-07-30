@@ -76,6 +76,9 @@ macro module*(names: varargs[string], body: untyped): untyped =
   for i in 0..<len(body):
     result.add(body[i])
 
-template answer*(data: string, atch: string = "") {.dirty.} = 
+template answer*(data: string, atch = "", wait = false) {.dirty.} = 
   ## Отправляет сообщение $data пользователю
-  yield api.answer(msg, data, attaches=atch)
+  when wait:
+    yield api.answer(msg, data, attaches=atch)
+  else:
+    asyncCheck api.answer(msg, data, attaches=atch)

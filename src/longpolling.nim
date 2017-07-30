@@ -60,7 +60,7 @@ proc processLpMessage(bot: VkBot, event: seq[JsonNode]) {.async.} =
   # Если мы же и отправили это сообщение - его обрабатывать не нужно
   if Flags.Outbox in msgFlags: return
   # Заменяем <br> нормальными \n и обрабатываем команду
-  let cmd = bot.processCommand(text.str.replace("<br>", "\n"))
+  let cmd = bot.processCommand(text.str.replace("<br>", "\n").replace("&quot;", ""))
   var fwdMessages = newSeq[ForwardedMessage]()
   # Если есть пересланные сообщения
   if "fwd" in attaches:

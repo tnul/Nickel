@@ -22,7 +22,7 @@ const
     "щ": "m", "ъ": "q", "ы": "ıq", "ь": "q",
     "э": "є", "ю": "oı", "я": "ʁ", "1": "Ɩ",
     "2": "ᄅ", "3": "Ɛ", "4": "ㄣ", "5": "ϛ",
-    "6": "9", "7": "ㄥ", "8": "8", "9": "6", "0": "0"}.toTable
+    "6": "9", "7": "ㄥ", "8": "8", "9": "6", "0": "0"}.toTable()
 
 module "&#128394;", "Операции с текстом":
   command "перечеркни", "зачеркни":
@@ -46,25 +46,14 @@ module "&#128394;", "Операции с текстом":
       if FlipTable.hasKey(letter): 
         data &= FlipTable[letter]
       # Иначе просто добавляем саму букву
-      else: 
+      else:
         data &= letter
     answer data
     
   command "лол":
     usage = "лол <кол-во> - генерирует смех определённой длины из символов АЗХ"
-    const 
-      LolWord = "АЗХ"
-      Default = 5
-      Max = 90
-    var 
-      count: int
-      failed = false
+    const LolWord = "АЗХ"
     try:
-      count = args[0].parseInt
+      answer LolWord.repeat(args[0].parseInt.clamp(5, 90))
     except:
-      failed = true
-    if failed:
       answer usage
-      return
-    count = max(Default, min(count, Max))
-    answer LolWord.repeat(count)

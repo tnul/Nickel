@@ -1,6 +1,3 @@
-# GUI
-when defined(gui):
-  import gui
 # Модули стандартной библиотеки
 import json  # Обработка JSON
 import httpclient  # HTTP запросы

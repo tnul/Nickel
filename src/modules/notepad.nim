@@ -4,10 +4,9 @@ import times
 # Тут хранятся блокноты пользователей (без перезапуска)
 var savedData = newStringTable()
 
-
 proc restore(peerId: string): string = 
   # Если есть сохранённые данные, отдаём
-  savedData.getOrDefault(peerId, default = "")
+  savedData.getOrDefault(peerId)
 
 proc add(peerId: string, data: string) = 
   if savedData.hasKey(peerId):
@@ -30,10 +29,7 @@ module "&#128221;", "Блокнот":
     of "покажи":
       # Отдаём то, что у нас сохранено в памяти
       let data = restore($msg.pid)
-      if data != "":
-        answer data
-      else:
-        answer "Я ничего не вспомнил"
+      answer if data != "": data else: "Я ничего не вспомнил"
     of "запиши":
       # Если меньше двух аргументов - значит нам не прислали саму инфу
       if args.len < 2:

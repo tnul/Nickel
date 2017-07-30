@@ -1,7 +1,10 @@
 include base
 
 const
-  Answers = ["Каеф", "Не баян (баян)", "Ну держи!"]
+  Answers = [
+    "Каеф", "Не баян (баян)", 
+    "Ну держи!", "А вот и баянчики подъехали"
+  ]
   DvachGroupId = "-22751485"  # https://vk.com/ru2ch
   MemesGroupId = "-86441049"  # https://vk.com/hard_ps
 
@@ -9,10 +12,11 @@ proc giveMemes(api: VkApi, msg: Message, groupId: string) {.async.} =
     ## Получает случайную фотографию из постов группы с id groupId
     var 
       pic: JsonNode
-      values = {"owner_id": groupId,  # ID группы
-                "offset": $(random(1984) + 1),  # Оффсет
-                "count": "1"  # Кол-во записей 
-                }.toApi
+      values = {
+        "owner_id": groupId,  # ID группы
+        "offset": $(random(1984) + 1),  # Оффсет
+        "count": "1"  # Кол-во записей 
+      }.toApi
       
     # Пока мы не нашли картинку
     while pic == nil:

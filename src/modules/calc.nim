@@ -12,12 +12,10 @@ module "&#128202;", "Калькулятор":
     if text == "":
       answer usage
       return
-    let
-      # Получаем результат
-      answer = teAnswer(text) 
+    let calculated = teAnswer(text) 
     # Если произошла ошибка при вычислении
-    if answer == "":
+    if calculated == "":
       answer FailMsg
     else:
       # Отправляем результат выражения
-      answer text & " = " & answer
+      answer text & " = " & calculated

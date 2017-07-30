@@ -48,15 +48,8 @@ module "Википедия":
     if text == "":
       answer usage
       return
-    var data: string
-    let client = newAsyncHttpClient()
     try:
-      # Пытаемся получить информацию
-      data = await client.getInfo(text)
-    except: 
-      # Не получилось - такой статьи нет
-      data = ""
-    if data == "":
+      let client = newAsyncHttpClient()
+      answer await client.getInfo(text)
+    except:
       answer "Информации по запросу `$1` не найдено." % [text]
-    else:
-      answer data

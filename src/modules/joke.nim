@@ -11,8 +11,6 @@ const
   
   JokesUrl = "http://bash.im/random"
 
-
-
 proc getJoke(): Future[string] {.async.} =
   let 
     client = newAsyncHttpClient() 
