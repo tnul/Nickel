@@ -1,12 +1,13 @@
 include base
 import sequtils
 
-# Загружаем массив фактов из json файла и конвертируем в 
-# последовательность строк (сделано для уменьшения повторения кода)
+# Загружаем массив фактов из json файла (во время компиляции) и конвертируем
+# в последовательность строк (сделано для уменьшения повторения кода)
 template jsonToSeq(filename: string): untyped = 
-  parseFile(filename).getElems().mapIt(it.str)
+  const data = staticRead(filename)
+  data.parseJson.getElems().mapIt(it.str)
 
-let 
+let
   facts = jsonToSeq("data/facts.json")
   puzzle = jsonToSeq("data/puzzle.json")
 

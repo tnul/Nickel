@@ -53,7 +53,7 @@ proc initLongPolling*(bot: VkBot, failNum = 0) {.async.} =
 proc processLpMessage(bot: VkBot, event: seq[JsonNode]) {.async.} =
   ## Обрабатывает сырое событие нового сообщения
   # Распаковываем значения из события
-  event.extract(msgId, flags, peerId, ts, subject, text, attaches)
+  event.unpack(msgId, flags, peerId, ts, subject, text, attaches)
 
   # Конвертируем число в set значений enum'а Flags
   let msgFlags = cast[set[Flags]](flags.num)

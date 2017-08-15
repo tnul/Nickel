@@ -13,15 +13,15 @@ import types
 var count {.compiletime.} = 1
 
 macro command*(cmds: varargs[string], body: untyped): untyped =
-  let 
-    # Создаём уникальное имя для процедуры
-    uniqName = newIdentNode("handler" & $count)
+  let uniqName = newIdentNode("handler" & $count)
   var 
     usage = ""
-    moduleUsages: seq[string] = @[]
+    moduleUsages = newSeq[string]()
     procBody = newStmtList()
+    start = 0
   # Если у нас есть `usage = something`
   if body[0].kind == nnkAsgn:
+    start = 1
     let text = body[0][1]
     
     # Если это массив, например ["a", "b"]
@@ -31,8 +31,8 @@ macro command*(cmds: varargs[string], body: untyped): untyped =
     # Если это строка, или строка с тройными кавычками
     elif text.kind == nnkStrLit or text.kind == nnkTripleStrLit:
       usage = text.strVal
-  # Добавляем сам код обработчика (кроме строки кода с usage)
-  for i in 1..<body.len:
+  # Добавляем сам код обработчика
+  for i in start..<body.len:
     procBody.add body[i]
   # Добавляем к usages только если usage - не пустая строка
   if usage.len > 0:
@@ -72,13 +72,4 @@ macro command*(cmds: varargs[string], body: untyped): untyped =
 macro module*(names: varargs[string], body: untyped): untyped = 
   # Добавляем в модули имя нашего модуля (все строки объединённые с пробелом)
   modules.add names.mapIt(it.strVal).join(" ")
-  result = newStmtList()
-  for i in 0..<len(body):
-    result.add(body[i])
-
-template answer*(data: string, atch = "", wait = false) {.dirty.} = 
-  ## Отправляет сообщение $data пользователю
-  when wait:
-    yield api.answer(msg, data, attaches=atch)
-  else:
-    asyncCheck api.answer(msg, data, attaches=atch)
+  result = body

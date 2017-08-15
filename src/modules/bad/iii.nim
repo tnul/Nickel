@@ -22,11 +22,9 @@ proc decrypt(msg: string): string =
   ## Расшифровывает строку $msg, полученную от iii
   result = base64.decode interXor base64.decode(msg)
 
-proc init(id: string): Future[string] {.async.} = 
-  const
-    InitUrl = "http://iii.ru/api/2.0/json/Chat.init/$1/$2"
-  let 
-    client = newAsyncHttpClient()
+proc init(client: AsyncHttpClient, id: string): Future[string] {.async.} = 
+  const InitUrl = "http://iii.ru/api/2.0/json/Chat.init/$1/$2"
+  let
     # Отправляем запрос на инициализацию сессии чата
     data = await client.getContent(InitUrl % [BotID, id])
     # Расшифровываем ответ
@@ -34,9 +32,9 @@ proc init(id: string): Future[string] {.async.} =
   # Возвращаем ID сессии
   result = jsonData["result"]["cuid"].str
 
-proc chat(sess, msg: string): Future[string] {.async.} = 
+proc chat(client: AsyncHttpClient, 
+          sess, msg: string): Future[string] {.async.} =
   let 
-    client = newAsyncHttpClient()
     # Формируем данные для отправки - ["код сессии","сообщение"]
     toSend = "[\"$1\",\"$2\"]" % [sess, msg]
     # Шифруем данные
@@ -47,14 +45,15 @@ proc chat(sess, msg: string): Future[string] {.async.} =
   return parseJson(decrypt(await req.body))["result"]["text"]["value"].str
 
 var 
-  sessions = initTable[string, string]()
+  sessions = newStringTable()
 
 module "&#128172;", "Бот iii.ru":
   command "сеть", "iii", "инф", "сеть,", "инф,":
     usage = "сеть <текст> - отправить боту сообщение"
     let
       uid = $msg.pid
+      client = newAsyncHttpClient()
     if not sessions.hasKey(uid):
-      sessions[uid] = await init(uid)
+      sessions[uid] = await client.init(uid)
     let sess = sessions[uid]
-    answer(await sess.chat(text))
+    answer(await client.chat(sess, text))

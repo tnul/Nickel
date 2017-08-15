@@ -3,6 +3,7 @@ import types
 import utils
 import sequtils
 import queues
+import macros
 
 type
   # Кортеж для обозначения нашего запроса к API через метод VK API - execute
@@ -35,13 +36,13 @@ proc login*(login, password: string): string =
     client = newHttpClient()
     # Кодируем параметры через url encode
     body = encode(authParams)
-    # Посылаем запрос
   try:
+    # Посылаем запрос
     let data = client.postContent("https://oauth.vk.com/token", body = body)
     # Получаем наш authToken
     result = data.parseJson()["access_token"].str
   except OSError:
-    error("Не могу авторизоваться, скорее всего нет доступа к интернету!")
+    log.error("Не могу авторизоваться, скорее всего нет доступа к интернету!")
     quit(1)
   log(lvlInfo, "Бот успешно авторизовался!")
 
@@ -61,16 +62,22 @@ proc toExecute(methodName: string, params: StringTableRef): string {.inline.} =
     # Получаем последовательность из параметров вызовы
     pairsSeq = toSeq(params.pairs)
     # Составляем последовательность аргументов к вызову API
-    keyValSeq = pairsSeq.mapIt("\"$1\":\"$2\"" % [it.key, it.value.replace("\n", "<br>")])
+    keyValSeq = pairsSeq.mapIt(
+      "\"$1\":\"$2\"" % [
+        it.key,
+        # Заменяем \n на <br> и " на \"
+        it.value.multiReplace(("\n", "<br>"), ("\"", "\\\""))
+      ]
+    )
   # Возвращаем полный вызов к API с именем метода и параметрами
-  return "API." & methodName & "({" & keyValSeq.join(", ") & "})"
+  result = "API." & methodName & "({" & keyValSeq.join(", ") & "})"
 
 # Создаём очередь запросов (по умолчанию делаем её из 32 элементов)
 var requests = initQueue[MethodCall](32)
 
-proc callMethod*(api: VkApi, methodName: string,
-                 params: StringTableRef = nil, auth = true, 
-                 flood = false, execute = true): Future[JsonNode] {.async.} = 
+proc callMethod*(api: VkApi, methodName: string, params: StringTableRef = nil,
+                 auth = true, flood = false, 
+                 execute = true): Future[JsonNode] {.async, discardable.} = 
   ## Отправляет запрос к методу {methodName} с параметрами {params}
   ## и дополнительным {token} (по умолчанию отправляет его через execute)
   const
@@ -125,12 +132,13 @@ proc callMethod*(api: VkApi, methodName: string,
         let 
           sid = error["captcha_sid"].str
           img = error["captcha_img"].str
-        error("Капча $1 - $2" % [sid, img])
+        log.error("Капча $1 - $2" % [sid, img])
         params["captcha_sid"] = sid
         #params["captcha_key"] = key
         #return await callMethod(api, methodName, params, needAuth)
       else:
-        error("Ошибка при вызове $1 - $2\n$3" % [methodName, error["error_msg"].str, $jsonData])
+        log.error("Ошибка при вызове $1 - $2\n$3" % [methodName, 
+                  error["error_msg"].str, $jsonData])
         
     else:
       # Если нет ошибки и поля response, просто возвращаем ответ
@@ -167,7 +175,8 @@ proc executeCaller*(api: VkApi) {.async.} =
     # Составляем общий код VK Script
     let code = "return [" & items.join(", ") & "];"
     # Отправляем запрос (false - не отправлять его самого через execute)
-    let answer = await api.callMethod("execute", {"code": code}.toApi, execute = false)
+    let answer = await api.callMethod("execute", {"code": code}.toApi, 
+                                      execute = false)
     # Проходимся по результатам и futures
     for data in zip(answer.getElems(), futures):
       let (item, fut) = data
@@ -245,3 +254,59 @@ proc answer*(api: VkApi, msg: Message, body: string, attaches = "") {.async.} =
   # Если есть какие-то аттачи, добавляем их
   if attaches.len > 0: data["attachment"] = attaches
   discard await api.callMethod("messages.send", data)
+
+template answer*(data: string, atch = "", wait = false) {.dirty.} = 
+  ## Отправляет сообщение $data пользователю
+  when wait:
+    yield api.answer(msg, data, attaches=atch)
+  else:
+    asyncCheck api.answer(msg, data, attaches=atch)
+
+# https://github.com/TiberiumN/nimvkapi
+macro `@`*(api: VkApi, body: untyped): untyped =
+  # Copy input, so we can modify it
+  var input = copyNimTree(body)
+  # Copy API object
+  var api = api
+
+  proc getData(node: NimNode): NimNode =
+    # Table with API parameters
+    var table = newNimNode(nnkTableConstr)
+    # Name of method call
+    let name = node[0].toStrLit
+    let textName = $name
+    for arg in node.children:
+      # If it's a equality expression "abcd=something"
+      if arg.kind == nnkExprEqExpr:
+        # Convert key to string, and call $ for value to convert it to string
+        table.add(newColonExpr(arg[0].toStrLit, newCall("$", arg[1])))
+    # Generate result
+    result = quote do: 
+      `api`.callMethod(`name`, `table`.toApi)
+  
+  template isNeeded(n: NimNode): bool = 
+    ## Returns true if NimNode is something like 
+    ## "users.get(user_id=1)" or "users.get()" or "execute()"
+    n.kind == nnkCall and (n[0].kind == nnkDotExpr or $n[0] == "execute")
+  
+  proc findNeeded(n: NimNode) =
+    var i = 0
+    # For every children
+    for child in n.children:
+      # If it's the children we're looking for
+      if child.isNeeded():
+        # Modify our children with generated info
+        n[i] = child.getData().copyNimTree()
+      else:
+        # Recursively call findNeeded on child
+        child.findNeeded()
+      inc i  # increment index
+  
+  # If we're looking for that input
+  if input.isNeeded():
+    # Generate needed info
+    return input.getData()
+  else:
+    # Find needed NimNode in input, and replace it here
+    input.findNeeded()
+    return input

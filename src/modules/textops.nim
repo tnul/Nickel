@@ -10,7 +10,7 @@ const
     "t": "ʇ", "u": "n", "v": "ʌ", "w": "ʍ",
     "y": "ʎ", ".": "˙", "[": "]", "(": ")",
     "]": "[", ")": "(", "{": "}", "}": "{",
-    "?": "¿", "!": "¡", "\"": ",", ",": "\"",
+    "?": "¿", "!": "¡", "\"": ",", ",": "'",
     "<": ">", "_": "‾", "‿": "⁀", "⁅": "⁆",
     "∴": "∵", "\r": "\n", "а": "ɐ", "б": "ƍ",
     "в": "ʚ", "г": "ɹ", "д": "ɓ", "е": "ǝ",
@@ -39,16 +39,16 @@ module "&#128394;", "Операции с текстом":
   
   command "переверни":
     usage = "переверни <строка> - перевернуть строку"
-    var data = text
+    var result = ""
     # Переводим строку в нижний регистр и проходимся по UTF8 символам
-    for letter in unicode.toLower(data.reversed).utf8:
+    for letter in unicode.toLower(text.reversed).utf8:
       # Если ключ есть в нашей таблице
       if FlipTable.hasKey(letter): 
-        data &= FlipTable[letter]
+        result &= FlipTable[letter]
       # Иначе просто добавляем саму букву
       else:
-        data &= letter
-    answer data
+        result &= letter
+    answer result
     
   command "лол":
     usage = "лол <кол-во> - генерирует смех определённой длины из символов АЗХ"

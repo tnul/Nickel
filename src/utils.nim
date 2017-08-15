@@ -51,7 +51,7 @@ proc toEng*(data: string): string =
   ## Конвертирует строку в русской раскладке в английскую
   data.convert(Russian, English)
 
-macro extract*(args: varargs[untyped]): typed =
+macro unpack*(args: varargs[untyped]): typed =
   ## Распаковывает последовательность или массив
   ## Почти тоже самое, что "a, b, c, d = list" в питоне
   ## Использование:
@@ -63,50 +63,34 @@ macro extract*(args: varargs[untyped]): typed =
   var i = 0
   # Все остальные аргументы - названия переменных
   for arg in args.children:
-    if i > 0:
+    if i > 0: 
       # Добавляем код к результату
-      let code = quote do:
+      result.add(quote do:
         let `arg` = `arr`[`i` - 1]
-      result.add(code)
+      )
     inc i
   
 # Имена файлов, которые не нужно импортировать
 const IgnoreFilenames = ["base.nim", "help.nim"]
+
 macro importPlugins*(): untyped =
   result = newStmtList()
-  var
-    data: seq[tuple[kind: PathComponent, path: string]]
-    folder = "src/modules"
-  # Если мы на Windows, то у пути должны быть обратные слеши
-  when defined(windows) and not defined(crosswin):
-    folder = r"src\modules"
-    data = toSeq(walkDir(r"src\modules"))
-  else:
-    data = toSeq(walkDir("src/modules"))
-  # Если в данной папке нет ни одного элемента
-  if data.len < 1:
-    folder = "modules"
+  let folder = "src" / "modules"
   # Проходимся по папке
   for kind, path in walkDir(folder):
     # Если это не файл
     if kind != pcFile: continue
-    let
-      # Разделитель для импорта
-      separator = when defined(windows) and not defined(crosswin): r"\" else: "/"
-      # Имя файла (делим справа максимум с 1 разделением)
-      filename = path.rsplit(separator, maxsplit = 1)[1]
+    # Имя файла
+    let filename = path.extractFilename()
     # Если этот файл нужно игнорировать
     if filename in IgnoreFilenames:
       continue
     # Имя модуля для импорта
     let toImport = filename.split(".")
     # Если расширение файла не .nim
-    if toImport[1] != "nim":
-      continue
-    let pathPart = "import " & folder & "/" 
-    let importStmt = pathPart & toImport[0]
+    if toImport[1] != "nim": continue
     # Добавляем импорт этого модуля
-    result.add parseExpr(importStmt)
+    result.add parseExpr("import " & folder / toImport[0])
   # Импортируем help в самом конце, чтобы все остальные модули записали
   # команды в commands
   result.add parseExpr("import " & folder & "/" & "help")
