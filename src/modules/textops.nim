@@ -1,5 +1,5 @@
 include base
-import unicode, sequtils
+import unicode, sequtils, future
 
 const
   # Таблица для переворачивания символов
@@ -13,8 +13,8 @@ const
     "?": "¿", "!": "¡", "\"": ",", ",": "'",
     "<": ">", "_": "‾", "‿": "⁀", "⁅": "⁆",
     "∴": "∵", "\r": "\n", "а": "ɐ", "б": "ƍ",
-    "в": "ʚ", "г": "ɹ", "д": "ɓ", "е": "ǝ",
-    "ё": "ǝ", "ж": "ж", "з": "ε", "и": "и",
+    "в": "ʚ", "г": "ɹ", "д": "ɓ", "ё": "ǝ",
+    "е": "ǝ", "ж": "ж", "з": "ε", "и": "и",
     "й": "ņ", "к": "ʞ", "л": "v", "м": "w",
     "н": "н", "о": "о", "п": "u", "р": "d", 
     "с": "ɔ","т": "ɯ", "у": "ʎ", "ф": "ȸ", 
@@ -23,6 +23,10 @@ const
     "э": "є", "ю": "oı", "я": "ʁ", "1": "Ɩ",
     "2": "ᄅ", "3": "Ɛ", "4": "ㄣ", "5": "ϛ",
     "6": "9", "7": "ㄥ", "8": "8", "9": "6", "0": "0"}.toTable()
+  
+  InvertedFlipTable = lc[
+    (FlipTable[key], key) | (key <- FlipTable.keys), tuple[a, b: string]
+  ].toTable()
 
 module "&#128394;", "Операции с текстом":
   command "перечеркни", "зачеркни":
@@ -39,16 +43,19 @@ module "&#128394;", "Операции с текстом":
   
   command "переверни":
     usage = "переверни <строка> - перевернуть строку"
-    var result = ""
+    var data = ""
     # Переводим строку в нижний регистр и проходимся по UTF8 символам
     for letter in unicode.toLower(text.reversed).utf8:
       # Если ключ есть в нашей таблице
-      if FlipTable.hasKey(letter): 
-        result &= FlipTable[letter]
+      if letter in FlipTable: 
+        data &= FlipTable.getOrDefault(letter)
+      # Если перевёрнутая буква есть в инвертированной таблице
+      elif InvertedFlipTable.hasKey(letter):
+        data &= InvertedFlipTable[letter]
       # Иначе просто добавляем саму букву
       else:
-        result &= letter
-    answer result
+        data &= letter
+    answer data
     
   command "лол":
     usage = "лол <кол-во> - генерирует смех определённой длины из символов АЗХ"

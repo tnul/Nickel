@@ -1,109 +1,113 @@
 include baseimports
-import parsecfg  # Парсинг .ini
-import types
-import algorithm  # Сортирование префиксов
+ # Сортирование префиксов
+import algorithm
+import sequtils 
 
-const 
-  DefaultSettings = """[Auth]
-token = ""  # Введите тут свой токен от группы
-# Или же вместо токена можно ввести свой логин и пароль:
-login = ""
-password = ""
-
-[Bot]
-try_convert = True  # Пытаться ли переводить сообщения из английской в русскую раскладку?
-forward_conf = True  # Пересылать ли те сообщения, на которые отвечает бот в беседе
-
-[CallbackApi]
-use_callback = False  # Использовать ли Callback API (ТОЛЬКО ДЛЯ ГРУПП!)
-confirmation_code = "code"  # Код подтверждения Callback API
-
-[Errors]
-report_errors = True  # Нужно ли сообщать пользователям, когда в каком-то модуле произошла ошибка?
-full_errors = True  # Нужно ли отправлять пользователям весь лог ошибки?
-
-[Messages]
-# Сообщение, которое отправляется пользователям, если "report_errors" включено
-on_error = "Произошла ошибка при выполнении бота:"
-# Префиксы для команд. Разделитель - |, по умолчанию здесь 3 префикса:
-# "бот", "бот, " и "" - т.е. пустой префикс (чтобы можно было писать команды без префикса)
-# Все префиксы должны быть в нижнем регистре!
-prefixes = "бот|бот, |"
-
-[Logging]
-# Уровень логгирования (только для консольной версии)
-# lvlDebug
-# lvlInfo  <- для обычного использования бота лучше использовать этот
-# lvlNotice
-# lvlWarning <- для использования на серверах
-# lvlError 
-# lvlFatal
-# lvlNone
-format = "[$time][$levelid] " # https://nim-lang.org/docs/logging.html
-level = lvlInfo
-errors = True  # Нужно ли писать ошибки вместе с логом?
-messages = True  # Нужно ли логгировать сообщения? True/False
-commands = True  # Нужно ли логгировать команды? True/False
-
-"""
-
-  FileCreatedMessage = """Был создан файл settings.ini. Пожалуйста, 
+const
+  FileCreatedMessage = """Был создан файл конфигурации settings.json. Пожалуйста, 
 измените настройки на свои!"""
 
-  NoLoginMessage = "Вы не указали данные для входа в settings.ini!"
+  NoLoginMessage = "Вы не указали данные для входа в settings.json!"
 
   ConfigLoadMessage = """Не удалось загрузить конфигурацию. 
-Если у вас есть settings.ini, попробуйте его удалить и запустить бота заново."""
+Если у вас есть settings.json, попробуйте его удалить и запустить бота заново."""
 
   LoadMessage = "Загрузка настроек из settings.ini:"
 
+  DefaultSettings = """{
+    "group": {
+      "token": ""
+    },
+    "user": {
+      "login": "",
+      "password": ""
+    },
+    "bot": {
+      "prefixes": ["бот", "бот,", "!"],
+      "try_convert": true,
+      "forward_conf": true
+    },
+    "callback_api": {
+      "enabled": false,
+      "code": "code"
+    },
+    "errors": {
+      "report": true,
+      "complete_log": true
+    },
+    "messages": {
+      "on_error": "Произошла ошибка при выполнении бота:"
+    },
+    "log": {
+      "format": "[$time][$levelid] ",
+      "level": "lvlInfo",
+      "on_error": true,
+      "on_message": true,
+      "on_command": true
+    }
+  }"""
+
 proc parseConfig*(): BotConfig =
   ## Парсинг settings.ini, создаёт его, если его нет, возвращает объект конфига
-  if not existsFile("settings.ini"):
-    open("settings.ini", fmWrite).write(DefaultSettings)
+  if not existsFile("settings.json"):
+    open("settings.json", fmWrite).write(DefaultSettings)
     fatalError(FileCreatedMessage)
   try:
-    let data = loadConfig("settings.ini")
-    var prefixes = data.getSectionValue("Messages", "prefixes").split("|")
+    let data = parseFile("settings.json")
+    let prefixSeq = data["bot"]["prefixes"].elems.mapIt(it.str)
     # Сортируем по длине префикса, и переворачиваем последовательность, чтобы
     # самые длинные префиксы были в начале
-    prefixes = prefixes.sortedByIt(it).reversed()
-    let 
+    let prefixes = prefixSeq.sortedByIt(it).reversed()
+    let
+      # Секция группы
+      group = data["group"]
+      # Секция пользователя
+      user = data["user"]
+      # Секция бота
+      bot = data["bot"]
+      # Секция Callback API
+      callback = data["callback_api"]
+      # Секция ошибок
+      errors = data["errors"]
+      # Секция сообщений
+      messages = data["messages"]
+      # Секция логгирования
+      log = data["log"]
       c = BotConfig(
         # Токен
-        token: data.getSectionValue("Auth", "token"),
+        token: group["token"].str,
         # Логин пользователя
-        login: data.getSectionValue("Auth", "login"),
+        login: user["login"].str,
         # Пароль пользователя
-        password: data.getSectionValue("Auth", "password"),
+        password: user["password"].str,
         # Нужно ли проверять на некорректную раскладку
-        convertText: data.getSectionValue("Bot", "try_convert").parseBool,
+        convertText: bot["try_convert"].bval,
         # Нужно ли пересылать сообщения, на которые отвечает бот в беседе
-        forwardConf: data.getSectionValue("Bot", "forward_conf").parseBool,
+        forwardConf: bot["forward_conf"].bval,
         # Нужно ли отправлять пользователям сообщение об ошибке
-        reportErrors: data.getSectionValue("Errors", "report_errors").parseBool,
+        reportErrors: errors["report"].bval,
         # Отправлять ли пользователям полный лог ошибки
-        fullReport: data.getSectionValue("Errors", "full_errors").parseBool,
+        fullReport: errors["complete_log"].bval,
         # Сообщение, которое выводится при ошибке бота
-        errorMessage: data.getSectionValue("Messages", "on_error"),
+        errorMessage: messages["on_error"].str,
         # Нужно ли логгировать сообщения
-        logMessages: data.getSectionValue("Logging", "messages").parseBool,
+        logMessages: log["on_message"].bval,
         # Нужно ли логгировать команды
-        logCommands: data.getSectionValue("Logging", "commands").parseBool,
+        logCommands: log["on_command"].bval,
         # Логгировать ли ошибки в консоль
-        logErrors: data.getSectionValue("Logging", "errors").parseBool,
+        logErrors: log["on_error"].bval,
         # Префиксы, с помощью которых можно выполнять команды
         prefixes: prefixes,
         # Использовать ли Callback API
-        useCallback: data.getSectionValue("CallbackApi", "use_callback").parseBool,
+        useCallback: callback["enabled"].bval,
         # Код для подтверждения Callback API
-        confirmationCode: data.getSectionValue("CallbackApi", "confirmation_code")
+        confirmationCode: callback["code"].str
       )
-    # Если в конфиге нет токена, или логин или пароль пустые - ошибка
+    # Если в конфиге нет токена, или логин или пароль пустые
     if c.token == "" and (c.login == "" or c.password == ""):
-      fatalError(NoLoginMessage)    
-    logger.levelThreshold = parseEnum[Level](data.getSectionValue("Logging", "level"))
-    logger.fmtStr = data.getSectionValue("Logging", "format")
+      fatalError(NoLoginMessage)
+    logger.levelThreshold = parseEnum[Level](log["level"].str)
+    logger.fmtStr = log["format"].str
     log(lvlWarn, LoadMessage)
     return c
   except:

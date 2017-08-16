@@ -1,7 +1,7 @@
 nimcache
 vkbot.linux64
 vkbot.exe
-settings.ini
+settings.json
 logindata
 *.dll
 *.exe
