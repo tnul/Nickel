@@ -1,12 +1,12 @@
 include base
-import httpclient, encodings, streams, htmlparser, xmltree
+import httpclient, encodings, streams, htmlparser, xmltree, random
 
 const 
   Answers = [
-    "А вот и шуточки подъехали", 
+    "Башорг врать не станет!", 
     "Сейчас будет смешно, зуб даю",
     "Шуточки заказывали?", 
-    "Петросян в душе прям бушует :)"
+    "Со мной тоже такое бывало :)"
   ]
   
   JokesUrl = "http://bash.im/random"
@@ -18,22 +18,22 @@ proc getJoke(): Future[string] {.async.} =
     jokeHtml = parseHtml(newStringStream(jokeRaw))
   
   result = ""
+  var goodElems = newSeq[XmlNode]()
   for elem in jokeHtml.findAll("div"):
     if elem.attr("class") != "text":
       # Нам нужны div'ы с классом "text"
       continue
-    # Для каждого "ребёнка" элемента
-    for child in elem.items:
-      case child.kind:
-        of XmlNodeKind.xnText:
-          result.add(child.innerText)
-        of XmlNodeKind.xnElement:
-          result.add("\n")
-        else:
-          discard
-    # Если у нас есть шутка, не будем искать другие
-    if len(result) > 0:
-      break
+    goodElems.add elem
+  # Для каждого "ребёнка" случайной цитаты из все
+  for child in random(goodElems).items:
+    case child.kind:
+      of XmlNodeKind.xnText:
+        result.add(child.innerText)
+      of XmlNodeKind.xnElement:
+        result.add("\n")
+      else:
+        discard
+
 
 module "&#128175;", "Анекдоты":
   command "пошути", "шуткани", "анекдот", "баш", "петросян":

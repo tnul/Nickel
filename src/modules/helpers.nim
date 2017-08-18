@@ -15,7 +15,7 @@ module "Хелперы":
       id = msg.fwdMessages[0].userId
     else:
       # Получаем user id через VK API
-      let info = await api@messages.getById(message_ids=msg.fwdMessages[0])
+      let info = await api@messages.getById(message_ids=msg.fwdMessages[0].msgId)
       id = int info["items"][0]["user_id"].num
     answer "ID этого пользователя - " & $id
   

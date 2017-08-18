@@ -39,7 +39,7 @@ const
       "on_error": "Произошла ошибка при выполнении бота:"
     },
     "log": {
-      "format": "[$time][$levelid] ",
+      "format": "[$time][$levelid]",
       "level": "lvlInfo",
       "on_error": true,
       "on_message": true,
