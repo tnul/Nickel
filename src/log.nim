@@ -10,12 +10,18 @@ template log*(lvl: logging.Level, data: string): untyped =
   ## Шаблон для логгирования (С выводом файла и строки)
   const 
     pos = instantiationInfo()
-    addition = "[$1:$2] " % [pos.filename, $pos.line]
+    # Не пишем номера строк в release билде
+    addition = 
+      when defined(release):
+        "[$1] " % [pos.filename]
+      else:
+        "[$1:$2] " % [pos.filename, $pos.line]
   logger.log(lvl, addition & data)
 
 template log*(data: string): untyped = log(lvlInfo, data)
 
 proc fatalError*(data: string) = 
+  ## Логгирует ошибку data с уровнем lvlFatal, и выключает бота
   log(lvlFatal, data)
   quit()
 
