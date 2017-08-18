@@ -1,7 +1,7 @@
 # Очень рекомендуется include'ить этот файл во все плагины
 import ../types  # типы данных
 import ../vkapi  # VK API
-import ../command  # Процедура handle
+import ../handlers  # Процедура handle
 import ../utils  # Утилиты
 import ../dsl  # Метапрограммирование для модулей 
 import ../log  # Логгирование

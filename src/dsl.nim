@@ -3,7 +3,7 @@ import macros
 import strutils
 import sequtils
 # Свои модули
-import command
+import handlers
 import utils
 import vkapi
 import types
@@ -12,37 +12,34 @@ import types
 # Создан для уникальных имён
 var count {.compiletime.} = 1
 
+template start*(body: untyped): untyped {.dirty.} = 
+  ## Шаблон для секции "start" в модуле, код внутри секции выполняется
+  ## после запуска бота
+  proc onStart(bot: VkBot, config: JsonNode): Future[bool] {.async.} = 
+    result = true
+    body
+  addStartHandler(name, onStart)
+  
 macro command*(cmds: varargs[string], body: untyped): untyped =
   let uniqName = newIdentNode("handler" & $count)
   var 
-    usage = ""
-    moduleUsages = newSeq[string]()
+    usage = newSeq[string]()
     procBody = newStmtList()
     start = 0
   # Если у нас есть `usage = something`
   if body[0].kind == nnkAsgn:
     start = 1
     let text = body[0][1]
-    
     # Если это массив, например ["a", "b"]
     if text.kind == nnkBracket:
       for i in 0..<text.len:
-        moduleUsages.add text[i].strVal
+        usage.add text[i].strVal
     # Если это строка, или строка с тройными кавычками
     elif text.kind == nnkStrLit or text.kind == nnkTripleStrLit:
-      usage = text.strVal
+      usage.add text.strVal
   # Добавляем сам код обработчика
   for i in start..<body.len:
     procBody.add body[i]
-  # Добавляем к usages только если usage - не пустая строка
-  if usage.len > 0:
-    usages.add usage
-  # Если есть строки в moduleUsages
-  if moduleUsages.len > 0:
-    usage = moduleUsages.join("\n")
-    for x in moduleUsages:
-      # Добавляем к глобальным usages
-      if x != "": usages.add(x)
   # Инкрементируем счётчик для уникальных имён
   inc count
   
@@ -53,11 +50,12 @@ macro command*(cmds: varargs[string], body: untyped): untyped =
     procUsage = newIdentNode("usage")
     args = newIdentNode("args")
     text = newIdentNode("text")
+    name = newIdentNode("name")
   # Добавляем код к результату
   result = quote do:
     proc `uniqName`(`api`: VkApi, `msg`: Message) {.async.} = 
       # Добавляем "usage" для того, чтобы использовать его внутри процедуры
-      const `procUsage` = `usage`
+      const `procUsage` = @(`usage`)
       # Сокращение для "msg.cmd.args"
       let `args` = `msg`.cmd.args
       # Сокращение для получения текста (сразу всех аргументов)
@@ -66,10 +64,17 @@ macro command*(cmds: varargs[string], body: untyped): untyped =
       `procBody`
     # Команды, которые обрабатываются этим обработчиком
     const cmds = `cmds`
-    # Вызываем proc.handle(cmds) из command.nim
-    handle(`uniqName`, cmds)
+    addCmdHandler(`uniqName`, `name`, @cmds, @(`usage`))
 
 macro module*(names: varargs[string], body: untyped): untyped = 
   # Добавляем в модули имя нашего модуля (все строки объединённые с пробелом)
-  modules.add names.mapIt(it.strVal).join(" ")
-  result = body
+  let moduleName = names.mapIt(it.strVal).join(" ")
+  template data(moduleName, body: untyped) {.dirty.} = 
+    # Отделяем модуль блоком для того, чтобы у разных
+    # модулей были разные области видимости
+    block:
+      modules[moduleName] = newModule(moduleName)
+      let name = moduleName
+      body
+  result = getAst(data(moduleName, body))
+  

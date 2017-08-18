@@ -88,7 +88,7 @@ macro importPlugins*(): untyped =
     # Имя модуля для импорта
     let toImport = filename.split(".")
     # Если расширение файла не .nim
-    if toImport[1] != "nim": continue
+    if toImport.len != 2 or toImport[1] != "nim": continue
     # Добавляем импорт этого модуля
     result.add parseExpr("import " & folder / toImport[0])
   # Импортируем help в самом конце, чтобы все остальные модули записали

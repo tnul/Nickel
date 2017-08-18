@@ -1,12 +1,19 @@
 include base
+import sequtils
 
 module "&#127384;", "Помощь":
   command "команды", "помощь", "хелп", "хэлп":
     usage = "команды - вывести список всех команд"
-    const Result = "Доступные команды:\n\n✅" & usages.join("\n✅")
-    answer Result
+    var usages = newSeq[string]()
+    # Проходимся по всем модулям
+    for module in modules.values:
+      # Проходимся по всем секциям команд в модуле
+      for cmd in module.cmds:
+        # Добавляем usages секции к нашим usages
+        usages.add cmd.usages
+    answer "Доступные команды:\n\n✅" & usages.join("\n✅")
   
   command "модули", "плагины":
     usage = "модули - вывести список всех модулей"
-    const Result = "Встроенные модули:\n\n" & modules.join("\n\n")
-    answer Result
+    let moduleNames = toSeq(modules.values).mapIt(it.name).join("\n\n")
+    answer "Встроенные модули:\n\n" & moduleNames

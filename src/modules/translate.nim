@@ -6,9 +6,6 @@ const
   LanguagesUrl = "https://translate.yandex.net/api/v1.5/tr.json/getLangs"
   ApiKey = ""
 
-if ApiKey == "":
-  log(lvlWarn, "Не указан API ключ для модуля перевода!")
-  
 let headers = newHttpHeaders(
   {"Content-type": "application/x-www-form-urlencoded"}
 )
@@ -32,15 +29,16 @@ proc translate(text, to: string): Future[string] {.async.} =
   result = (await TranslateUrl.callApi(params))["text"][0].str
 
 module "&#128292;", "Переводчик":
+  start:
+    if ApiKey == "":
+      log("Вы не указали ключ API переводчика, модуль выключается.")
+    return false
+  
   command "переведи":
     usage = [
       "переведи на $язык $текст - перевести $текст на $язык", 
       "переведи $текст - перевести $текст на русский"
     ]
-    # Проверяем, что ключ указан
-    if ApiKey == "":
-      answer "Не указан API ключ переводчика, сообщите администратору!"
-      return
     # Если мы не загрузили список доступных языков
     if langs.len == 0:
       await getLanguages()

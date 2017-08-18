@@ -6,11 +6,14 @@ var logger* = newConsoleLogger()
 addHandler(logger)
 export logging
 
-proc log*(level: Level, data: string) = 
-  logger.log(level, data)
+template log*(lvl: logging.Level, data: string): untyped =
+  ## Шаблон для логгирования (С выводом файла и строки)
+  const 
+    pos = instantiationInfo()
+    addition = "[$1:$2] " % [pos.filename, $pos.line]
+  logger.log(lvl, addition & data)
 
-template log*(data: string) = 
-  log(lvlAll, data)
+template log*(data: string): untyped = log(lvlInfo, data)
 
 proc fatalError*(data: string) = 
   log(lvlFatal, data)

@@ -255,12 +255,13 @@ proc answer*(api: VkApi, msg: Message, body: string, attaches = "") {.async.} =
   if attaches.len > 0: data["attachment"] = attaches
   discard await api.callMethod("messages.send", data)
 
-template answer*(data: string, atch = "", wait = false) {.dirty.} = 
+template answer*(data: typed, atch = "", wait = false) {.dirty.} = 
   ## Отправляет сообщение $data пользователю
+  let toSend = when data is string: data else: data.join("\n")
   when wait:
-    yield api.answer(msg, data, attaches=atch)
+    yield api.answer(msg, toSend, attaches=atch)
   else:
-    asyncCheck api.answer(msg, data, attaches=atch)
+    asyncCheck api.answer(msg, toSend, attaches=atch)
 
 # https://github.com/TiberiumN/nimvkapi
 macro `@`*(api: VkApi, body: untyped): untyped =

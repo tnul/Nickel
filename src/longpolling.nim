@@ -1,7 +1,7 @@
 include baseimports
 
 # Свои модули
-import command  # Обработка команд
+import handlers  # Обработка команд
 import message  # Обработка сообщения
 import vkapi  # VK API
 import utils  # Утилиты

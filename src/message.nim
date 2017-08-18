@@ -6,7 +6,7 @@ import vkapi  # VK API
 import errors  # Обработка ошибок бота
 import types  # Общие типы бота
 import utils  # Утилиты
-import command  # Парсинг команд
+import handlers  # Парсинг команд
 
 var 
   msgCount* = 0
@@ -42,7 +42,7 @@ proc processMessage*(bot: VkBot, msg: Message) {.async.} =
     if bot.config.logCommands:
       msg.log(command = true)
     # Выполняем процедуру модуля асинхронно с хэндлером ошибок
-    runCatch(commands[msg.cmd.name], bot, msg)
+    runCatch(commands[msg.cmd.name].call, bot, msg)
   else:
     # Если это не команда, и нужно логгировать сообщения
     if bot.config.logMessages:

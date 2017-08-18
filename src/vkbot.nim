@@ -6,7 +6,7 @@ import types  # Общие типы бота
 import vkapi  # Реализация VK API
 import config # Парсинг файла конфигурации
 import errors  # Обработка ошибок
-import command  # Таблица {команда: плагин} и макросы
+import handlers  # Таблица {команда: плагин} и макросы
 import log  # Логгирование
 import longpolling  # Работа с Long Polling
 import callbackapi  # Работа с Callback API
@@ -24,7 +24,17 @@ proc newBot(config: BotConfig): VkBot =
 
 
 proc startBot(bot: VkBot) {.async.} =
-  ## Инициализирует Long Polling и запускает главный цикл бота
+  ## Инициализирует Long Polling, модули и запускает главный цикл бота
+  # Проходимся по всем модулям бота
+  for name, module in modules:
+    # Если у модуля нет процедуры запуска - пропускаем
+    if module.startProc.isNil():
+      continue
+    # Если модуль сообщил, что не может включиться - удаляем его
+    # из списка модулей
+    if not await module.startProc(bot, %*{}):
+      # Удаляем информацию о модуле
+      modules.del(name)
   if not bot.config.useCallback:
     await bot.initLongPolling()
     await bot.mainLoop()
