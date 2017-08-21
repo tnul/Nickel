@@ -65,9 +65,8 @@ macro unpack*(args: varargs[untyped]): typed =
   for arg in args.children:
     if i > 0: 
       # Добавляем код к результату
-      result.add(quote do:
+      result.add quote do:
         let `arg` = `arr`[`i` - 1]
-      )
     inc i
   
 # Имена файлов, которые не нужно импортировать

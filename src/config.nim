@@ -12,7 +12,7 @@ const
   ConfigLoadMessage = """Не удалось загрузить конфигурацию. 
 Если у вас есть settings.json, попробуйте его удалить и запустить бота заново."""
 
-  LoadMessage = "Загрузка настроек из settings.ini:"
+  LoadMessage = "Загрузка настроек из settings.json..."
 
   DefaultSettings = """{
     "group": {
@@ -47,13 +47,14 @@ const
     }
   }"""
 
-proc parseConfig*(): BotConfig =
+proc parseBotConfig*(): BotConfig =
   ## Парсинг settings.ini, создаёт его, если его нет, возвращает объект конфига
-  if not existsFile("settings.json"):
-    open("settings.json", fmWrite).write(DefaultSettings)
+  const botCfg = "config" / "bot.json"
+  if not existsFile(botCfg):
+    open(botCfg, fmWrite).write(DefaultSettings)
     fatalError(FileCreatedMessage)
   try:
-    let data = parseFile("settings.json")
+    let data = parseFile(botCfg)
     let prefixSeq = data["bot"]["prefixes"].elems.mapIt(it.str)
     # Сортируем по длине префикса, и переворачиваем последовательность, чтобы
     # самые длинные префиксы были в начале
@@ -113,6 +114,9 @@ proc parseConfig*(): BotConfig =
   except:
     # Если произошла какая-то ошибка при загрузке конфига
     fatalError(ConfigLoadMessage & "\nОшибка: " & getCurrentExceptionMsg())
+
+proc loadModuleConfig*(name: string): JsonNode = 
+  parseFile("config" / name & ".json")
 
 proc log*(c: BotConfig) =
   ## Выводит объект настроек бота $config

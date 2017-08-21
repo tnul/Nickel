@@ -2,9 +2,6 @@ include base
 import httpclient, strutils, times, math, unicode
 
 const
-  # Очень желательно сменить этот ключ на свой!
-  Key = "78b50ffaf45be011ccc5fccca4d836d8"
-
   ForecastUrlFormat = "http://api.openweathermap.org/data/2.5/forecast/daily?APPID=$1&lang=ru&q=$2&cnt=$3"
 
   ResultFormat = """$1:
@@ -21,7 +18,12 @@ const
     "завтра": 1
   }.toOrderedTable
               
+var key = ""
+
 module "&#127782;", "Погода":
+  startConfig:
+    key = config["key"].str
+  
   command "погода":
     usage = "погода <город> <время> - узнать погоду, например `погода в Москве через неделю`"
     let 
@@ -33,16 +35,16 @@ module "&#127782;", "Погода":
     if text.len > 0:
       var data = text
       # Проходимся по всем возможным значениям
-      for key, val in TextToDays.pairs:
-        if key in args:
-          data = data.replace(key, "")
-          days = val
+      for k, v in TextToDays.pairs:
+        if k in args:
+          data = data.replace(k, "")
+          days = v
       # Находим город, который отправил пользователь
       let possibleCity = data.replace(" в ", "").replace(" в", "").replace("в ", "")
       if possibleCity != "":
         city = unicode.toLower(possibleCity)
     # Формируем URL
-    url = ForecastUrlFormat % [Key, city, $(days+1)]
+    url = ForecastUrlFormat % [key, city, $(days+1)]
     let resp = await client.get(url)
     # Если сервер не нашёл этот город
     if resp.code != HttpCode(200):

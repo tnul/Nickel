@@ -23,18 +23,51 @@ proc newBot(config: BotConfig): VkBot =
   return VkBot(api: api, lpData: lpData, config: config, isGroup: isGroup)
 
 
-proc startBot(bot: VkBot) {.async.} =
-  ## Инициализирует Long Polling, модули и запускает главный цикл бота
+proc parserModuleConfig(cfg: var JsonNode, module: Module) = 
+  try:
+    cfg = loadModuleConfig(module.filename)
+  except:
+    log(
+      lvlError,
+      "При чтении конфигурации $1.json произошла ошибка:\n$2" % [
+        module.filename, getCurrentExceptionMsg()
+      ]
+    )
+    
+proc initModules(bot: VkBot) {.async.} = 
   # Проходимся по всем модулям бота
   for name, module in modules:
     # Если у модуля нет процедуры запуска - пропускаем
-    if module.startProc.isNil():
+    if module.startProc.isNil() or not module.needCfg:
       continue
-    # Если модуль сообщил, что не может включиться - удаляем его
-    # из списка модулей
-    if not await module.startProc(bot, %*{}):
-      # Удаляем информацию о модуле
+    var cfg: JsonNode
+    # Если модулю нужен конфиг
+    if module.needCfg:
+      parserModuleConfig(cfg, module)
+      # Если не получилось спарсить конфиг - пропускаем этот модуль
+      if cfg.isNil():
+        modules.del(name)
+        continue
+    # Выполняем процедуру запуска модуля
+    let fut = module.startProc(bot, cfg)
+    # Ожидаем её завершения
+    yield fut
+    # Если при запуске модуля произошла ошибка
+    if fut.failed:
+      # Вызываем её
+      try:
+        raise fut.error
+      except:
+        let msg = fut.error.getStackTrace() & "\n" & getCurrentExceptionMsg()
+        log(lvlError, "При запуске модуля $1 произошла ошибка:\n$2" % [name, msg])
+        modules.del(name)
+    elif fut.read == false:
+      # Если модуль не захотел включаться - тоже удаляем его
       modules.del(name)
+
+proc startBot(bot: VkBot) {.async.} =
+  ## Инициализирует Long Polling, модули и запускает главный цикл бота
+  await bot.initModules()
   if not bot.config.useCallback:
     await bot.initLongPolling()
     await bot.mainLoop()
@@ -54,7 +87,7 @@ when isMainModule:
     # И очищаем консоль
     discard execShellCmd("cls")
   # Парсим конфиг
-  let cfg = parseConfig()
+  let cfg = parseBotConfig()
   # Выводим его значения (кроме логина, пароля, и токена)
   cfg.log()
   log(lvlInfo, "Авторизация в ВК...")

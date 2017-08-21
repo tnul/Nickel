@@ -5,8 +5,8 @@ const
     "Каеф", "Не баян (баян)", 
     "Ну держи!", "А вот и баянчики подъехали"
   ]
-  DvachGroupId = "-22751485"  # https://vk.com/ru2ch
-  MemesGroupId = "-86441049"  # https://vk.com/hard_ps
+
+var groupId = ""
 
 proc giveMemes(api: VkApi, msg: Message, groupId: string) {.async.} = 
   ## Получает случайную фотографию из постов группы с id groupId
@@ -31,11 +31,10 @@ proc giveMemes(api: VkApi, msg: Message, groupId: string) {.async.} =
     attachment = "photo$1_$2_$3" % [oid, attachId, accessKey]
   answer(random(Answers), attachment)
 
-module "﷽", "Двач - случайные мемы с двача или из https://vk.com/hard_ps":
-  command "двач", "2ch":
-    usage = "двач - случайный мем с двача"
-    await giveMemes(api, msg, DvachGroupId)
+module "﷽", "Мемы - случайные мемы":
+  startConfig:
+    groupId = config["group_id"].str
 
   command "мемы", "мемчики", "мемасы", "мемасики", "мемас":
-    usage = "мемы - случайный мем из https://vk.com/hard_ps"
-    await giveMemes(api, msg, MemesGroupId)
+    usage = "мемы - случайный мем"
+    await giveMemes(api, msg, groupId)

@@ -20,10 +20,11 @@ proc `[]`*(cmds: seq[ModuleCommand], name: string): ModuleCommand =
     if name in cmd.cmds:
       return cmd
 
-proc newModule*(name: string): Module = 
+proc newModule*(name, fname: string): Module = 
   ## Создаёт новый модуль с названием name
   new(result)
   result.name = name
+  result.filename = fname
   result.cmds = @[]
   result.anyCommands = @[]
 
@@ -39,9 +40,10 @@ proc addCmdHandler*(handler: ModuleFunction, name: string,
   else: module.cmds.add moduleCmd
   commands.add moduleCmd
 
-proc addStartHandler*(name: string, handler: OnStartProcedure) = 
+proc addStartHandler*(name: string, handler: OnStartProcedure, needCfg = true) =
   ## Добавляет к модулю процедуру, которая выполняется после запуска бота
   modules[name].startProc = handler
+  modules[name].needCfg = needCfg
 
 proc processCommand*(bot: VkBot, body: string): Command =
   ## Обрабатывает строку {body} и возвращает тип Command

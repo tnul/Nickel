@@ -77,6 +77,8 @@ type
   
   Module* = ref object
     name*: string  ## Имя модуля
+    filename*: string ## Имя файла с модулем (без расширения .nim)
+    needCfg*: bool ## Нужна ли модулю конфигурация
     cmds*: seq[ModuleCommand] ## Секции команд, которые есть в этом модуле
     anyCommands*: seq[ModuleFunction]  ## Команды, которые реагируют на любой текст
     startProc*: OnStartProcedure  ## Процедура, выполняемая после запуска бота

@@ -42,6 +42,5 @@ proc log*(msg: Message, command = false) =
 macro logWithLevel*(lvl: Level, body: untyped): untyped = 
   result = newStmtList()
   for elem in body:
-    let data = quote do:
+    result.add quote do:
       log(`lvl`, `elem`)
-    result.add data

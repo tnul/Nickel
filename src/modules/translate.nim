@@ -1,11 +1,15 @@
 include base
 import httpclient, unicode
 
+type
+  Api = object
+    key: string
+
 const
   TranslateUrl = "https://translate.yandex.net/api/v1.5/tr.json/translate"
   LanguagesUrl = "https://translate.yandex.net/api/v1.5/tr.json/getLangs"
-  ApiKey = ""
 
+var apiKey = ""
 let headers = newHttpHeaders(
   {"Content-type": "application/x-www-form-urlencoded"}
 )
@@ -17,7 +21,7 @@ proc callApi(url: string, params: StringTableRef): Future[JsonNode] {.async.} =
   result = parseJson await client.postContent(url, encode(params))
 
 proc getLanguages() {.async.} = 
-  let params = {"key": ApiKey, "ui": "ru"}.newStringTable()
+  let params = {"key": apiKey, "ui": "ru"}.newStringTable()
   let data = await LanguagesUrl.callApi(params)
   # Проходимся по словарю код_языка: отображаемое_имя
   for ui, display in data["langs"].getFields():
@@ -25,14 +29,15 @@ proc getLanguages() {.async.} =
     langs[unicode.toLower(display.str)] = ui
 
 proc translate(text, to: string): Future[string] {.async.} = 
-  let params = {"key": ApiKey, "text": text, "lang": to}.newStringTable()
+  let params = {"key": apiKey, "text": text, "lang": to}.newStringTable()
   result = (await TranslateUrl.callApi(params))["text"][0].str
 
 module "&#128292;", "Переводчик":
-  start:
-    if ApiKey == "":
+  startConfig Api:
+    if config.key == "":
       log("Вы не указали ключ API переводчика, модуль выключается.")
       return false
+    apiKey = config.key
     # Получаем список языков от Яндекса
     await getLanguages()
   

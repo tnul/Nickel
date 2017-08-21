@@ -12,10 +12,31 @@ import types
 # Создан для уникальных имён
 var count {.compiletime.} = 1
 
+
 template start*(body: untyped): untyped {.dirty.} = 
   ## Шаблон для секции "start" в модуле, код внутри секции выполняется
   ## после запуска бота
+  # Тут так же есть объект JsonNode, так как иначе не получилось бы добавить эту
+  # процедуру к остальным хендлерам
+  proc onStart(bot: VkBot, hidedRawCfg: JsonNode): Future[bool] {.async.} = 
+    result = true
+    body
+  addStartHandler(name, onStart, false)
+
+template startConfig*(body: untyped): untyped {.dirty.} = 
+  ## Шаблон для секции "startConfig" в модуле, код внутри секции выполняется
+  ## после запуска бота. Передаёт объект config в модуль
   proc onStart(bot: VkBot, config: JsonNode): Future[bool] {.async.} = 
+    result = true
+    body
+  addStartHandler(name, onStart)
+
+template startConfig*(typ: untyped, body: untyped): untyped {.dirty.} = 
+  ## Шаблон для секции "startConfig" в модуле, код внутри секции выполняется
+  ## после запуска бота. Отличается от предыдущего тем, что принимает тип,
+  ## в который должна быть превращена конфигурация
+  proc onStart(bot: VkBot, rawCfg: JsonNode): Future[bool] {.async.} = 
+    let config = json.to(rawCfg, typ)
     result = true
     body
   addStartHandler(name, onStart)
@@ -55,7 +76,7 @@ macro command*(cmds: varargs[string], body: untyped): untyped =
   result = quote do:
     proc `uniqName`(`api`: VkApi, `msg`: Message) {.async.} = 
       # Добавляем "usage" для того, чтобы использовать его внутри процедуры
-      const `procUsage` = @(`usage`)
+      const `procUsage` = `usage`
       # Сокращение для "msg.cmd.args"
       let `args` = `msg`.cmd.args
       # Сокращение для получения текста (сразу всех аргументов)
@@ -73,7 +94,10 @@ macro module*(names: varargs[string], body: untyped): untyped =
     # Отделяем модуль блоком для того, чтобы у разных
     # модулей были разные области видимости
     block:
-      modules[moduleName] = newModule(moduleName)
+      # Получаем имя файла с текущим модулем
+      const fname = instantiationInfo().filename.splitFile().name
+      # Добавляем наш модуль в таблицу всех модулей
+      modules[moduleName] = newModule(moduleName, fname)
       let name = moduleName
       body
   result = getAst(data(moduleName, body))

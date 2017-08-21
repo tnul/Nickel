@@ -1,10 +1,8 @@
 nimcache
-vkbot.linux64
+vkbot
 vkbot.exe
-settings.json
-logindata
+config/bot.json
 *.dll
 *.exe
 *.ilk
 *.pdb
-avatar.png
