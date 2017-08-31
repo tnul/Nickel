@@ -118,6 +118,7 @@ proc parseBotConfig*(): BotConfig =
 proc loadModuleConfig*(name: string): JsonNode = 
   parseFile("config" / name & ".json")
 
+
 proc log*(c: BotConfig) =
   ## Выводит объект настроек бота $config
   logWithLevel(lvlNotice):

@@ -51,5 +51,6 @@ module "Википедия":
     try:
       let client = newAsyncHttpClient()
       answer await client.getInfo(text)
+      client.close()
     except:
       answer "Информации по запросу `$1` не найдено." % [text]

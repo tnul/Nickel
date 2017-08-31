@@ -8,10 +8,13 @@ export logging
 
 template log*(lvl: logging.Level, data: string): untyped =
   ## Шаблон для логгирования (С выводом файла и строки)
-  const 
+  # pos и addition константы, так что они напрямую вставляются в вызов
+  # log, тем самым не увеличивая размер кода :)
+  const
+    # Получаем информацию о файле и строке, где вызвали этот шаблон
     pos = instantiationInfo()
-    # Не пишем номера строк в release билде
     addition = 
+      # Не пишем номера строк в release билде
       when defined(release):
         "[$1] " % [pos.filename]
       else:

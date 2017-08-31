@@ -23,21 +23,3 @@ module "Хелперы":
     usage = "сократи <ссылка> - сократить ссылку через vk.cc"
     let data = await api@utils.getShortLink(url=text)
     answer "Ваша ссылка: https://vk.cc/" & data["key"].str
-  
-  command "инфо", "стата", "статистика":
-    const 
-      gitRev = 
-        # Если в данной папке есть репозиторий и у человека есть git клиент
-        if dirExists(".git") and gorgeEx("git status")[1] == 0:
-          staticExec("git rev-parse HEAD")
-        else:
-          "неизвестно"
-      # Берём дату и время компиляции
-      date = CompileDate & " в " & CompileTime
-    answer """Nickel - бот для ВКонтакте на Nim
-    Автор - vk.com/yardanico
-    Git-ревизия - $1
-    Скомпилирован $2
-    Обработано команд: $3
-    Принято сообщений: $4
-    """.unindent % [gitRev, date, $cmdCount, $msgCount]

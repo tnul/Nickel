@@ -1,13 +1,12 @@
 include baseimports
 
 # Свои модули
-import handlers  # Обработка команд
-import message  # Обработка сообщения
+import commands
 import vkapi  # VK API
 import utils  # Утилиты
 
 
-proc getLongPollUrl(bot: VkBot) =
+proc getLongPollUrl(bot: var VkBot) =
   ## Получает URL для Long Polling на основе данных bot.lpData
   const 
     UrlFormat = "https://$1?act=a_check&key=$2&ts=$3&wait=25&mode=2&version=1"
@@ -26,29 +25,30 @@ proc getLongPollApi(api: VkApi): Future[JsonNode] {.async.} =
     if result.len > 0:
       break
 
-proc initLongPolling*(bot: VkBot, failNum = 0) {.async.} =
+proc initLongPolling*(bot: VkBot, failNum = 0): Future[VkBot] {.async.} =
   ## Инициализирует данные или обрабатывает ошибку Long Polling сервера
+  result = bot
   let data = await bot.api.getLongPollApi()
   case int(failNum)
     # Первый запуск бота
     of 0:
       # Создаём новый объект Long Polling'а
-      bot.lpData = LongPollData()
+      result.lpData = LongPollData()
       # Нам нужно инициализировать все параметры - первый запуск
-      bot.lpData.server = data["server"].str
-      bot.lpData.key = data["key"].str
-      bot.lpData.ts = data["ts"].num
+      result.lpData.server = data["server"].str
+      result.lpData.key = data["key"].str
+      result.lpData.ts = data["ts"].num
     of 2:
       ## Обновляем ключ
-      bot.lpData.key = data["key"].str
+      result.lpData.key = data["key"].str
     of 3:
       ## Обновляем ключ и метку времени
-      bot.lpData.key = data["key"].str
-      bot.lpData.ts = data["ts"].num
+      result.lpData.key = data["key"].str
+      result.lpData.ts = data["ts"].num
     else:
       discard
   # Обновляем URL Long Polling'а
-  bot.getLongPollUrl()
+  result.getLongPollUrl()
 
 proc processLpMessage(bot: VkBot, event: seq[JsonNode]) {.async.} =
   ## Обрабатывает сырое событие нового сообщения
@@ -68,7 +68,7 @@ proc processLpMessage(bot: VkBot, event: seq[JsonNode]) {.async.} =
       let data = fwdMsg.split("_")
       fwdMessages.add ForwardedMessage(msgId: data[1])
   # Создаём объект Message
-  let message = Message(
+  var message = Message(
       # Тип сообщения - если есть поле "from" - беседа, иначе - ЛС
       kind: if attaches.contains("from"): msgConf else: msgPriv,
       id: int msgId.num,  # ID сообщения
@@ -89,6 +89,7 @@ proc processLpMessage(bot: VkBot, event: seq[JsonNode]) {.async.} =
   
 proc mainLoop*(bot: VkBot) {.async.} = 
   ## Главный цикл Long Polling (тут происходит получение новых событий)
+  var bot = bot
   var http = newAsyncHttpClient()
   while true:
     # Получаем новый URL для лонг пуллинга
@@ -99,6 +100,7 @@ proc mainLoop*(bot: VkBot) {.async.} =
     yield req
     # Если произошла ошибка
     if req.failed:
+      http.close()
       debug("Запрос к LP не удался, создаю новый объект HTTP клиента...")
       http = newAsyncHttpClient()
       continue
@@ -113,7 +115,7 @@ proc mainLoop*(bot: VkBot) {.async.} =
       if failNum == 1:
         bot.lpData.ts = jsonData["ts"].num
       else:
-        await bot.initLongPolling(failNum)
+        bot = await bot.initLongPolling(failNum)
       continue
     # Такое может случиться (если поля updates нет вообще)
     if not jsonData.contains("updates"): continue

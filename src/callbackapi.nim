@@ -3,8 +3,7 @@ include baseimports
 import asynchttpserver  # Асинхронный HTTP сервер
 
 # Свои модули
-import handlers  # Обработка команд
-import message  # Обработка сообщения
+import commands  # Обработка команд
 import vkapi  # VK API
 import utils  # Утилиты
 

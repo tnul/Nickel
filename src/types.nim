@@ -1,7 +1,4 @@
-import json, httpclient, queues, asyncdispatch, tables
-
 # Все эти типы и поля доступны в других модулях.
-
 type
   LongPollData* = object
     key*: string  ## Ключ сервера 
@@ -25,7 +22,7 @@ type
   
   # Тип сообщения - из беседы или из ЛС
   MessageKind* = enum msgPriv, msgConf
-  Message* = ref object
+  Message* = object
     case kind*: MessageKind
     # Если это конференция, то добавляем поле с ID пользователя
     of msgConf:
@@ -59,26 +56,9 @@ type
     fwdConf*: bool
     isGroup*: bool
   
-  VkBot* = ref object
+  VkBot* = object
     api*: VkApi  ## Объект VK API
     lpData*: LongPollData  ## Информация о сервере Long Pooling
     lpURL*: string  ## URL сервера Long Pooling
     config*: BotConfig  ## Конфигурация бота
     isGroup*: bool
-    
-  ModuleFunction* = proc(api: VkApi, msg: Message): Future[void]
-
-  OnStartProcedure* = proc(bot: VkBot, config: JsonNode): Future[bool]
-  
-  ModuleCommand* = ref object
-    cmds*: seq[string]
-    usages*: seq[string]
-    call*: ModuleFunction
-  
-  Module* = ref object
-    name*: string  ## Имя модуля
-    filename*: string ## Имя файла с модулем (без расширения .nim)
-    needCfg*: bool ## Нужна ли модулю конфигурация
-    cmds*: seq[ModuleCommand] ## Секции команд, которые есть в этом модуле
-    anyCommands*: seq[ModuleFunction]  ## Команды, которые реагируют на любой текст
-    startProc*: OnStartProcedure  ## Процедура, выполняемая после запуска бота

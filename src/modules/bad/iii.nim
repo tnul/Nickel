@@ -57,3 +57,4 @@ module "&#128172;", "Бот iii.ru":
       sessions[uid] = await client.init(uid)
     let sess = sessions[uid]
     answer(await client.chat(sess, text))
+    client.close()

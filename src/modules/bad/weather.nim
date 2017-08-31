@@ -51,23 +51,25 @@ module "&#127782;", "Погода":
       answer "Информацию по заданному городу получить не удалось :("
       return
     let
+      data = await resp.body
       # День - последний элемент из массива
-      day = parseJson(await resp.body)["list"].getElems[^1]
+      day = parseJson(data)["list"].getElems[^1]
       # Конвертируем температуру по Фаренгейту в Цельсии, 
       # округляем и переводим в int
-      temp = int round day["temp"]["day"].fnum - 273
+      temp = int round day["temp"]["day"].getFNum() - 273
       # Влажность
-      humidity = int round day["humidity"].fnum
+      humidity = int round day["humidity"].getFNum()
       # Описание погоды с большой буквы в верхнем регистре
       desc = unicode.capitalize day["weather"].getElems()[0]["description"].str
       # Получаем скорость ветра, округляем и переводим в int
-      wind = int round day["speed"].fnum
+      wind = int round day["speed"].getFNum()
       # Получаем облачность, округляем и переводим в int
-      cloud = int round day["clouds"].fnum
+      cloud = int round day["clouds"].getFNum()
       # Получаем timestamp
-      date = int64 day["dt"].num
+      date = int64 day["dt"].getNum()
       # Конвертируем timestamp в наш формат
       time = fromSeconds(date).getLocalTime().format("d'.'MM'.'yyyy")
     # Отвечаем
     answer ResultFormat % [time, desc, $temp, $humidity, $cloud, $wind]
+    client.close()
 

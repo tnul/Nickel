@@ -33,6 +33,7 @@ proc getJoke(): Future[string] {.async.} =
         result.add("\n")
       else:
         discard
+  client.close()
 
 
 module "&#128175;", "Анекдоты":

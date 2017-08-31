@@ -39,9 +39,9 @@ module "&#8505;", "Пример модуля":
     usage = "тест <аргументы> - вывести полученные аргументы"
     const FormatString = "Это тестовая команда. Аргументы - $1\n Вложения - $2"
     # Получаем список приложений к сообщению через API
-    let attaches = await msg.attaches(api)
+    msg = await msg.attaches(api)
     # Отвечаем пользователю. Процедура `%` - форматирование строки (из модуля strutils)
-    answer(FormatString % [$args, $attaches])
+    answer(FormatString % [$args, $msg.doneAttaches])
 
   #[ 
     Секций "command" может быть сколько угодно.

@@ -1,12 +1,11 @@
 # Очень рекомендуется include'ить этот файл во все плагины
 import ../types  # типы данных
 import ../vkapi  # VK API
-import ../handlers  # Процедура handle
 import ../utils  # Утилиты
 import ../dsl  # Метапрограммирование для модулей 
 import ../log  # Логгирование
 # Импортируем кол-во обработанных сообщений и команд для модулей
-from ../message import msgCount, cmdCount
+from ../commands import compileModules
 import json  # Парсинг JSON
 import strutils  # Строковые операции
 import asyncdispatch  # Асинхронность

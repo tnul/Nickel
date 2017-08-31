@@ -19,6 +19,7 @@ proc callApi(url: string, params: StringTableRef): Future[JsonNode] {.async.} =
   let client = newAsyncHttpClient()
   client.headers = headers
   result = parseJson await client.postContent(url, encode(params))
+  client.close()
 
 proc getLanguages() {.async.} = 
   let params = {"key": apiKey, "ui": "ru"}.newStringTable()

@@ -30,6 +30,7 @@ proc getData(): Future[string] {.async.} =
   # Сохраняем результат и текущее время (для кеширования)
   data = result
   lastTime = epochTime()
+  client.close()
 
 module "&#128177;", "Курсы валют":
   command "курс", "валюта", "валюты", "доллар", "евро", "фунт":

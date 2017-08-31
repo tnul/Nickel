@@ -3,7 +3,7 @@ import sequtils
 import macros
 import times
 
-template twoChoices(a, b: untyped): untyped = 
+template twoChoices(a, b): untyped = 
   if random(2) == 0: a else: b
 
 module "&#9889;", "Случайные числа":

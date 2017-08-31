@@ -111,7 +111,8 @@ proc callMethod*(api: VkApi, methodName: string, params: StringTableRef = nil,
       params["message"] = antiFlood() & "\n" & params["message"]
     # Парсим ответ от сервера
     jsonData = parseJson(resp)
-  
+  # Закрываем соединение с сервером
+  http.close()
   let response = jsonData.getOrDefault("response") 
   # Если есть секция response - нам нужно вернуть ответ из неё
   if response != nil:
@@ -184,12 +185,13 @@ proc executeCaller*(api: VkApi) {.async.} =
       fut.complete(item)
 
 
-proc attaches*(msg: Message, vk: VkApi): Future[seq[Attachment]] {.async.} =
+proc attaches*(msg: Message, vk: VkApi): Future[Message] {.async.} =
   ## Получает аттачи сообщения {msg} используя объект API - {vk}
-  result = @[]
+  result = msg
   # Если у сообщения уже есть аттачи
-  if msg.doneAttaches != nil:
-    return msg.doneAttaches
+  if result.doneAttaches != nil:
+    return result
+  result.doneAttaches = @[]
   let 
     # Значения для запроса
     values = {"message_ids": $msg.id, "previev_length": "1"}.toApi
@@ -243,8 +245,7 @@ proc attaches*(msg: Message, vk: VkApi): Future[seq[Attachment]] {.async.} =
       resAttach = (typ, $attach["owner_id"].num, 
                   $attach["id"].num, key, link)
     # Добавляем аттач к результату
-    result.add(resAttach)
-  msg.doneAttaches = result
+    result.doneAttaches.add(resAttach)
 
 proc answer*(api: VkApi, msg: Message, body: string, attaches = "") {.async.} =
   ## Упрощённая процедура для ответа на сообщение {msg}
